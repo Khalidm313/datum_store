@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دخول التاجر | Datum Store</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+
+        :root {
+            /* الثيم الأزرق */
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-glow: rgba(37, 99, 235, 0.5);
+            --bg-dark: #0f172a;
+        }
+
+        body, html {
+            height: 100%; margin: 0;
+            font-family: 'Tajawal', sans-serif;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .split-container { display: flex; height: 100vh; flex-direction: row; }
+
+        /* --- الجانب الأيمن: نموذج الدخول --- */
+        .login-side {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            padding: 40px; background: #ffffff; position: relative; z-index: 10;
+            /* حركة دخول من اليمين */
+            animation: slideInRight 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+
+        .form-wrapper { width: 100%; max-width: 420px; text-align: right; }
+
+        h2 { 
+            font-size: 2.5rem; font-weight: 900; color: #0f172a; margin-bottom: 5px; 
+            opacity: 0; animation: slideUpFade 0.8s ease-out 0.5s forwards;
+        }
+        .subtitle { 
+            color: #64748b; margin-bottom: 35px; font-size: 1rem; 
+            opacity: 0; animation: slideUpFade 0.8s ease-out 0.6s forwards;
+        }
+
+        .input-group { 
+            margin-bottom: 20px; position: relative; 
+            opacity: 0; animation: slideUpFade 0.6s ease-out forwards;
+        }
+        .input-group:nth-child(1) { animation-delay: 0.7s; }
+        .input-group:nth-child(2) { animation-delay: 0.8s; }
+
+        .form-label { display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 0.95rem; }
+
+        .login-input {
+            width: 100%; padding: 16px 50px 16px 15px;
+            border: 2px solid #e2e8f0; border-radius: 14px;
+            font-family: 'Tajawal'; font-size: 1rem;
+            background: #f8fafc; box-sizing: border-box; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .login-input:focus {
+            outline: none; border-color: var(--primary); background: #fff;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.15); transform: translateY(-2px);
+        }
+
+        .input-icon {
+            position: absolute; right: 18px; top: 52px; color: #94a3b8; 
+            font-size: 1.1rem; transition: 0.3s;
+        }
+        .login-input:focus ~ .input-icon { color: var(--primary); transform: scale(1.1); }
+
+        .submit-btn {
+            width: 100%; padding: 18px; margin-top: 10px;
+            background: var(--primary); color: white; border: none; border-radius: 14px; 
+            font-size: 1.1rem; font-weight: 900; cursor: pointer; position: relative; overflow: hidden;
+            opacity: 0; animation: slideUpFade 0.6s ease-out 0.9s forwards;
+            transition: 0.3s; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .submit-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: 0.5s;
+        }
+        .submit-btn:hover::before { left: 100%; }
+        .submit-btn:hover { 
+            background: var(--primary-dark); transform: translateY(-3px); 
+            box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4); 
+        }
+
+        /* --- الجانب الأيسر: البراند --- */
+        .brand-side {
+            flex: 1.2;
+            background-color: #020617;
+            background-image: radial-gradient(circle at 30% 70%, #1e3a8a 0%, #020617 70%);
+            display: flex; justify-content: center; align-items: center;
+            position: relative; overflow: hidden; padding: 40px;
+            /* حركة دخول من اليسار */
+            animation: slideInLeft 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+
+        .particle {
+            position: absolute; border-radius: 50%; background: rgba(37, 99, 235, 0.4);
+            animation: floatParticle linear infinite;
+        }
+        .p1 { width: 150px; height: 150px; top: -5%; right: -5%; filter: blur(60px); animation-duration: 25s; }
+        .p2 { width: 100px; height: 100px; bottom: 20%; left: 10%; background: rgba(29, 78, 216, 0.3); filter: blur(40px); animation-duration: 18s; animation-direction: reverse; }
+        .p3 { width: 8px; height: 8px; top: 40%; right: 40%; background: #fff; opacity: 0.6; filter: blur(1px); animation: sparkle 4s infinite; }
+
+        .brand-content {
+            text-align: center; position: relative; z-index: 2;
+            animation: zoomIn 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s backwards;
+        }
+
+        .logo-container {
+            display: inline-block; margin-bottom: 30px;
+            border-radius: 35px; padding: 5px; background: transparent;
+            box-shadow: 0 0 60px rgba(37, 99, 235, 0.5); 
+            animation: logoFloat 6s ease-in-out infinite;
+        }
+
+        .app-icon {
+            width: 120px; height: 120px; border-radius: 30px;
+            object-fit: cover; display: block;
+        }
+
+        /* --- تنسيق القائمة الجديد (المطابق للصورة) --- */
+        .brand-features {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* محاذاة لليمين في وضع RTL */
+            margin-top: 40px;
+            padding: 0;
+            opacity: 0; 
+            animation: slideUpFade 0.8s ease-out 0.8s forwards;
+        }
+        
+        .brand-features li {
+            list-style: none; 
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex; 
+            align-items: center; 
+            gap: 15px;
+            width: 100%;
+        }
+
+        .brand-features i { 
+            color: #2563eb;       /* لون الدائرة الزرقاء */
+            font-size: 1.6rem;
+            background: #fff;     /* خلفية بيضاء لتعبئة الدائرة */
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* خدعة لجعل الأيقونة تبدو كدائرة زرقاء صلبة مع علامة صح */
+            box-shadow: inset 0 0 0 2px #2563eb; 
+        }
+
+        /* --- Animations Keyframes --- */
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        @keyframes slideUpFade { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes floatParticle { from { transform: translate(0, 0); } to { transform: translate(-30px, 30px); } }
+        @keyframes sparkle { 0%, 100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.5); } }
+        @keyframes zoomIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        @media (max-width: 1000px) { .brand-side { display: none; } }
+    </style>
+</head>
+<body>
+
+<div class="split-container">
+    
+    <div class="login-side">
+        <div class="form-wrapper">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="animate__animated animate__shakeX" 
+                             style="padding: 15px; margin-bottom: 20px; border-radius: 12px; font-weight: bold; text-align: center;
+                                    background: {{ '#fee2e2' if category == 'error' else '#dbeafe' }}; 
+                                    color: {{ '#dc2626' if category == 'error' else '#1e40af' }};">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <h2>دخول التاجر</h2>
+            <p class="subtitle">مرحباً بك مجدداً في نظام منظومة داتوم.</p>
+
+            <form action="{{ url_for('login') }}" method="POST">
+                <div class="input-group">
+                    <label class="form-label">اسم المستخدم</label>
+                    <input type="text" name="username" class="login-input" placeholder="أدخل اسم المستخدم" required>
+                    <i class="fas fa-store-alt input-icon"></i>
+                </div>
+
+                <div class="input-group">
+                    <label class="form-label">كلمة المرور</label>
+                    <input type="password" name="password" class="login-input" placeholder="••••••••" required>
+                    <i class="fas fa-lock-open input-icon"></i>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    بدء العمل الآن <i class="fas fa-cash-register"></i>
+                </button>
+            </form>
+
+            <div class="animate__animated animate__fadeIn animate__delay-1s" style="text-align: center; margin-top: 35px;">
+                <span style="color: #64748b;">ليس لديك حساب؟</span>
+                <a href="{{ url_for('register') }}" style="color: var(--primary); text-decoration: none; font-weight: 800; margin-right: 5px;">أنشئ متجرك الآن</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="brand-side">
+        <div class="particle p1"></div>
+        <div class="particle p2"></div>
+        <div class="particle p3"></div>
+
+        <div class="brand-content">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/login-logo.jpg') }}" alt="Datum Logo" class="app-icon">
+            </div>
+
+            <h1 style="color: #fff; font-size: 3rem; font-weight: 900; margin: 0;">Datum Store</h1>
+            
+            <ul class="brand-features">
+                <li><i class="fas fa-check-circle"></i> أسرع واجهة كاشير (POS)</li>
+                <li><i class="fas fa-check-circle"></i> تحديث فوري للمخزون</li>
+                <li><i class="fas fa-check-circle"></i> تقارير أداء ومبيعات يومية</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

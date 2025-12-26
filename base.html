@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datum Store</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+        
+        :root {
+            /* --- الألوان الأساسية --- */
+            --primary-h: 245;
+            --primary-s: 82%;
+            --primary-l: 67%;
+            
+            --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+            --primary-hover: hsl(var(--primary-h), var(--primary-s), 55%);
+            --primary-soft: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.15);
+            --primary-glow: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
+
+            --bg-body: #0f172a;
+            --bg-sidebar: #1e293b;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --border-color: #334155;
+            
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            
+            --sidebar-width: 260px;
+            --radius: 12px;
+        }
+
+        html.light-mode {
+            --bg-body: #f1f5f9;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --bg-input: #e2e8f0;
+            --border-color: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * { box-sizing: border-box; transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            border-left: 1px solid var(--border-color);
+            display: flex; flex-direction: column; padding: 20px; flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.5rem; font-weight: 800; margin-bottom: 30px;
+            display: flex; align-items: center; gap: 10px; color: var(--text-main); padding: 0 10px;
+        }
+        .logo i { color: var(--primary); }
+
+        .nav-link {
+            display: flex; align-items: center; gap: 12px; padding: 12px 15px;
+            color: var(--text-muted); text-decoration: none; border-radius: var(--radius);
+            margin-bottom: 5px; transition: 0.2s; font-weight: 500; cursor: pointer;
+        }
+
+        .nav-link:hover { background-color: var(--primary-soft); color: var(--primary); }
+        .nav-link.active { background-color: var(--primary); color: white; box-shadow: 0 4px 12px var(--primary-glow); }
+
+        /* --- Main Content --- */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+
+        /* --- Global Styles --- */
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .page-title { font-size: 1.8rem; font-weight: 800; margin: 0; }
+
+        .card {
+            background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: var(--radius); padding: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            width: 100%; padding: 12px 15px; background-color: var(--bg-input);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            color: var(--text-main); font-size: 1rem; outline: none; transition: 0.2s;
+        }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+
+        .btn {
+            display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+            padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;
+            border: none; transition: 0.2s; text-decoration: none; font-size: 0.95rem;
+            background: var(--primary); color: white;
+        }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: right; padding: 15px; color: var(--text-muted); border-bottom: 1px solid var(--border-color); font-weight: 600; }
+        td { padding: 15px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        
+        .theme-switch { cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-muted); transition: 0.2s; }
+        .theme-switch:hover { color: var(--primary); }
+
+        /* --- Flash Messages --- */
+        .flash-messages-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; width: 90%; max-width: 400px; pointer-events: none;
+        }
+        
+        .flash-message {
+            padding: 15px 20px; border-radius: 12px; margin-bottom: 10px;
+            color: white; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center; pointer-events: auto; animation: slideDown 0.5s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    </style>
+    
+    <script>
+        function hexToHSL(H) {
+            let r = 0, g = 0, b = 0;
+            if (H.length == 4) { r = "0x" + H[1] + H[1]; g = "0x" + H[2] + H[2]; b = "0x" + H[3] + H[3]; }
+            else if (H.length == 7) { r = "0x" + H[1] + H[2]; g = "0x" + H[3] + H[4]; b = "0x" + H[5] + H[6]; }
+            r /= 255; g /= 255; b /= 255;
+            let cmin = Math.min(r,g,b), cmax = Math.max(r,g,b), delta = cmax - cmin, h = 0, s = 0, l = 0;
+            if (delta == 0) h = 0;
+            else if (cmax == r) h = ((g - b) / delta) % 6;
+            else if (cmax == g) h = (b - r) / delta + 2;
+            else h = (r - g) / delta + 4;
+            h = Math.round(h * 60); if (h < 0) h += 360;
+            l = (cmax + cmin) / 2;
+            s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+            s = +(s * 100).toFixed(1); l = +(l * 100).toFixed(1);
+            return { h, s, l };
+        }
+
+        const savedTheme = localStorage.getItem('theme_mode');
+        const savedColorHex = localStorage.getItem('theme_color_hex');
+        
+        if (savedTheme === 'light') { document.documentElement.classList.add('light-mode'); }
+        if (savedColorHex) {
+            const hsl = hexToHSL(savedColorHex);
+            document.documentElement.style.setProperty('--primary-h', hsl.h);
+            document.documentElement.style.setProperty('--primary-s', hsl.s + '%');
+            document.documentElement.style.setProperty('--primary-l', hsl.l + '%');
+        }
+    </script>
+</head>
+<body>
+
+    <div class="flash-messages-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message" style="background: {{ 'var(--success)' if category == 'success' else 'var(--danger)' }};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-cube"></i> Datum Store
+        </div>
+
+        {% if current_user.is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' else '' }}"><i class="fas fa-shield-alt"></i> الإدارة العليا</a>
+            <a href="{{ url_for('manage_admins') }}" class="nav-link {{ 'active' if request.endpoint == 'manage_admins' else '' }}"><i class="fas fa-user-lock"></i> المشرفين</a>
+            <a href="{{ url_for('admin_profile') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_profile' else '' }}"><i class="fas fa-id-card"></i> ملفي</a>
+        {% else %}
+            <a href="{{ url_for('dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'dashboard' else '' }}"><i class="fas fa-chart-pie"></i> لوحة التحكم</a>
+            <a href="{{ url_for('pos') }}" class="nav-link {{ 'active' if request.endpoint == 'pos' else '' }}"><i class="fas fa-cash-register"></i> نقطة البيع</a>
+            <a href="{{ url_for('products') }}" class="nav-link {{ 'active' if 'product' in request.endpoint else '' }}"><i class="fas fa-box"></i> المنتجات</a>
+            <a href="{{ url_for('customers') }}" class="nav-link {{ 'active' if 'customer' in request.endpoint else '' }}"><i class="fas fa-users"></i> العملاء</a>
+            <a href="{{ url_for('expenses') }}" class="nav-link {{ 'active' if 'expense' in request.endpoint else '' }}"><i class="fas fa-wallet"></i> المصروفات</a>
+            <a href="{{ url_for('employees') }}" class="nav-link {{ 'active' if 'employee' in request.endpoint else '' }}"><i class="fas fa-user-tie"></i> الموظفين</a>
+            <a href="{{ url_for('invoices') }}" class="nav-link {{ 'active' if 'invoice' in request.endpoint else '' }}"><i class="fas fa-file-invoice"></i> الفواتير</a>
+            <a href="{{ url_for('settings') }}" class="nav-link {{ 'active' if request.endpoint == 'settings' else '' }}"><i class="fas fa-cog"></i> الإعدادات</a>
+        {% endif %}
+
+        <a href="{{ url_for('support') }}" class="nav-link {{ 'active' if request.endpoint == 'support' else '' }}" style="margin-top: auto;">
+            <i class="fas fa-headset"></i> الدعم الفني
+        </a>
+
+        <div style="padding: 10px 0; border-top: 1px solid var(--border-color); margin-top: 10px;">
+            <div class="theme-switch" onclick="toggleThemeMode()">
+                <i class="fas fa-moon" id="themeIcon"></i>
+                <span style="font-size: 0.9rem;">الوضع الليلي / النهاري</span>
+            </div>
+        </div>
+
+        <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger); background: rgba(239,68,68,0.1); margin-top: 5px;">
+            <i class="fas fa-sign-out-alt"></i> خروج
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // دالة تبديل الثيم
+        function toggleThemeMode() {
+            const htmlTag = document.documentElement;
+            htmlTag.classList.toggle('light-mode');
+            const isLight = htmlTag.classList.contains('light-mode');
+            localStorage.setItem('theme_mode', isLight ? 'light' : 'dark');
+            const icon = document.getElementById('themeIcon');
+            if(icon) icon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // استعادة الثيم المحفوظ
+            const savedTheme = localStorage.getItem('theme_mode');
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = (savedTheme === 'light') ? 'fas fa-sun' : 'fas fa-moon';
+            }
+            
+            // إخفاء التنبيهات تلقائياً
+            setTimeout(() => {
+                const alerts = document.querySelectorAll('.flash-message');
+                alerts.forEach(alert => {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                });
+            }, 4000);
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

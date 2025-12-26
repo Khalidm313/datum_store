@@ -1,0 +1,289 @@
+/* =====================================================
+   Datum Store - Complete Dark Glass Theme
+   ===================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+
+:root {
+    /* DARK THEME PALETTE */
+    --primary: #818cf8;       /* Indigo-400 */
+    --primary-hover: #6366f1; /* Indigo-500 */
+    
+    /* Deep "Space" Gradient Background */
+    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+    
+    /* DARK GLASS SETTINGS */
+    --glass-bg: rgba(15, 23, 42, 0.75); 
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    
+    /* Text Colors */
+    --text-main: #ffffff;
+    --text-muted: #94a3b8;
+    
+    /* Input Fields */
+    --input-bg: rgba(0, 0, 0, 0.3);
+    --input-border: rgba(255, 255, 255, 0.1);
+    
+    --bs-body-font-family: 'Tajawal', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--bs-body-font-family);
+    background: var(--bg-gradient);
+    min-height: 100vh;
+    color: var(--text-main);
+    direction: rtl;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Layout Wrappers --- */
+/* For Login/Register Pages: Centers content perfectly */
+.auth-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* For Dashboard Pages: Standard block layout */
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* --- The Glass Card --- */
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px); 
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--card-shadow);
+    padding: 40px;
+    width: 100%;
+    transition: transform 0.3s ease;
+}
+
+/* Specific Sizes */
+.login-card { max-width: 400px; }
+.register-card { max-width: 550px; }
+
+.card:hover { transform: translateY(-5px); }
+
+/* --- Typography --- */
+h2, h3 {
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 20px rgba(129, 140, 248, 0.3);
+}
+
+p.subtitle {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+/* --- Dark Inputs --- */
+.form-label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.form-control {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: #fff;
+    font-family: inherit;
+    transition: 0.3s;
+    outline: none;
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+/* --- Neon Button --- */
+.btn-primary {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    transition: 0.3s;
+    margin-top: 10px;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+    transform: scale(1.02);
+}
+
+/* --- Footer Links --- */
+.auth-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.auth-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+/* --- Alerts --- */
+.alert {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+.alert-danger {
+    background: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+}
+.alert-success {
+    background: rgba(22, 163, 74, 0.2);
+    color: #86efac;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+/* --- SIDEBAR & DASHBOARD STYLES --- */
+
+.sidebar {
+    width: 280px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-left: 1px solid var(--glass-border);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.brand {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-main);
+    text-align: center;
+    margin-bottom: 3rem;
+    text-decoration: none;
+    text-shadow: 0 0 15px rgba(129, 140, 248, 0.5);
+    display: block;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.nav-link i { margin-left: 12px; width: 20px; text-align: center; }
+
+.nav-link:hover, .nav-link.active {
+    background: rgba(129, 140, 248, 0.15);
+    color: #fff;
+    transform: translateX(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.nav-link.active {
+    border-right: 3px solid var(--primary);
+}
+
+.logout-btn {
+    margin-top: auto;
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+}
+.logout-btn:hover { background: rgba(239, 68, 68, 0.2); color: #fff; }
+
+.main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+/* --- Stats Cards --- */
+.stat-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s;
+}
+.stat-card:hover { transform: translateY(-5px); }
+
+.stat-info h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 5px; }
+.stat-info .value { font-size: 1.8rem; font-weight: 800; color: #fff; }
+
+.stat-icon {
+    width: 60px; height: 60px;
+    border-radius: 15px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    background: rgba(255,255,255,0.05);
+    color: var(--primary);
+}
+
+/* --- Tables --- */
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th { text-align: right; padding: 15px; color: var(--text-muted); border-bottom: 1px solid var(--glass-border); font-size: 0.9rem; }
+td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+/* الإعداد الافتراضي (الوضع الداكن) */
+.stat-value {
+    color: #ffffff; /* لون أبيض في الوضع الداكن */
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+/* التنسيق عند تفعيل وضع الإضاءة (Light Mode) */
+.light-mode .stat-value {
+    color: #1e293b !important; /* لون كحلي داكن ليظهر بوضوح فوق الخلفية البيضاء */
+}
+
+/* تنسيق إضافي لبطاقة مبيعات اليوم لتمييزها */
+.light-mode .stat-label {
+    color: #64748b; /* لون رمادي للنص الفرعي في وضع الإضاءة */
+}
+.company-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 30px;
+    mix-blend-mode: screen; /* This hides the black background of the logo */
+}

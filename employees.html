@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">إدارة الموظفين</h1>
+</div>
+
+<div class="card">
+    <h3 style="margin-top: 0;">إضافة موظف جديد</h3>
+    <form method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+        <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">اسم المستخدم</label><input type="text" name="username" class="form-control" required></div>
+        <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">كلمة المرور</label><input type="password" name="password" class="form-control" required></div>
+        <div>
+            <label style="display:block; margin-bottom:5px; color:var(--text-muted);">الصلاحية</label>
+            <select name="role" class="form-control">
+                <option value="cashier">كاشير (مبيعات فقط)</option>
+                <option value="owner">مدير (كامل الصلاحيات)</option>
+            </select>
+        </div>
+        <button type="submit" class="btn" style="background: var(--success);">إضافة</button>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>#</th><th>الاسم</th><th>الدور</th><th>إجراء</th></tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td style="font-weight: bold;">{{ emp.username }}</td>
+                <td>
+                    {% if emp.role == 'owner' %}<span style="color: var(--warning);">مدير</span>
+                    {% else %}<span style="color: var(--success);">كاشير</span>{% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('delete_employee', id=emp.id) }}" class="btn" style="padding: 5px 10px; background: rgba(239,68,68,0.1); color: var(--danger);" onclick="return confirm('حذف؟')">حذف</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

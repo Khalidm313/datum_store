@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إيصال تجديد اشتراك #{{ transaction_id }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --brand-color: #2563eb; /* لون Datum Store */
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --bg-gray: #f8fafc;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #e2e8f0;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .receipt-container {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* رأس الإيصال */
+        .receipt-header {
+            background: var(--bg-gray);
+            padding: 30px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--brand-color);
+            color: #fff;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+        .brand-text h2 { margin: 0; font-size: 1.2rem; color: var(--text-dark); }
+        .brand-text p { margin: 0; font-size: 0.8rem; color: var(--text-light); }
+
+        .receipt-status {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* جسم الإيصال */
+        .receipt-body { padding: 30px; }
+
+        .bill-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .bill-to h3 { font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px; }
+        .bill-to p { margin: 0; font-weight: bold; font-size: 1.1rem; }
+
+        .invoice-details { text-align: left; }
+        .invoice-details p { margin: 2px 0; font-size: 0.85rem; color: var(--text-light); }
+
+        /* تفاصيل الاشتراك */
+        .subscription-box {
+            background: var(--bg-gray);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .sub-row {
+            display: flex; justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #cbd5e1;
+            font-size: 0.95rem;
+        }
+        .sub-row:last-child { border-bottom: none; }
+        
+        .row-label { color: var(--text-light); }
+        .row-value { font-weight: 600; }
+        
+        .total-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 20px; padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+        .total-label { font-weight: bold; font-size: 1.1rem; }
+        .total-amount { font-size: 1.8rem; font-weight: 800; color: var(--brand-color); }
+
+        /* الفوتر */
+        .receipt-footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            background: var(--bg-gray);
+        }
+        .footer-msg { font-size: 0.9rem; margin-bottom: 15px; color: var(--text-light); }
+        
+        .btn {
+            background: var(--text-dark);
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .btn:hover { background: #000; transform: translateY(-2px); }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .receipt-container { box-shadow: none; border: 1px solid #ddd; max-width: 100%; }
+            .btn, .back-link { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="receipt-container">
+        
+        <div class="receipt-header">
+            <div class="brand-logo">
+                <div class="logo-icon"><i class="fas fa-cube"></i></div>
+                <div class="brand-text">
+                    <h2>Datum Store</h2>
+                    <p>Subscription Management</p>
+                </div>
+            </div>
+            <div class="receipt-status"><i class="fas fa-check-circle"></i> مدفوع</div>
+        </div>
+
+        <div class="receipt-body">
+            
+            <div class="bill-info">
+                <div class="bill-to">
+                    <h3>الإيصال موجه إلى</h3>
+                    <p>{{ shop_name }}</p>
+                    <div style="font-size: 0.85rem; color: #64748b; margin-top: 5px;">تجديد اشتراك الخدمة</div>
+                </div>
+                <div class="invoice-details">
+                    <p><strong>رقم الإيصال:</strong> #{{ transaction_id }}</p>
+                    <p><strong>التاريخ:</strong> {{ payment_date }}</p>
+                    <p><strong>الوقت:</strong> {{ payment_time }}</p>
+                </div>
+            </div>
+
+            <div class="subscription-box">
+                <div class="sub-row">
+                    <span class="row-label">نوع الباقة</span>
+                    <span class="row-value">{{ plan_name }}</span>
+                </div>
+                <div class="sub-row">
+                    <span class="row-label">تاريخ البداية</span>
+                    <span class="row-value">{{ start_date }}</span>
+                </div>
+                <div class="sub-row">
+                    <span class="row-label">تاريخ الانتهاء</span>
+                    <span class="row-value" style="color: var(--success);">{{ end_date }}</span>
+                </div>
+            </div>
+
+            <div class="total-row">
+                <span class="total-label">المبلغ المدفوع</span>
+                <span class="total-amount">{{ amount }} <small style="font-size: 1rem; color: #64748b;">د.ل</small></span>
+            </div>
+
+        </div>
+
+        <div class="receipt-footer">
+            <div class="footer-msg">شكراً لاختياركم Datum Store لتطوير أعمالكم!</div>
+            <button onclick="window.print()" class="btn">
+                <i class="fas fa-print"></i> طباعة الإيصال
+            </button>
+            <div style="margin-top: 15px;">
+                <a href="{{ url_for('admin_dashboard') }}" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">عودة للوحة التحكم</a>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

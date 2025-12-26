@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">إدارة المشرفين (Super Admins)</h1>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 25px; align-items: start;">
+    <div class="card">
+        <h3 style="margin-top: 0;">مشرف جديد</h3>
+        <form method="POST">
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; margin-bottom:5px; color:var(--text-muted);">اسم المستخدم</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom:5px; color:var(--text-muted);">كلمة المرور</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">إضافة</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>اسم المشرف</th>
+                    <th>الصلاحية</th>
+                    <th>حذف</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for admin in admins %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td style="font-weight: bold;">{{ admin.username }}</td>
+                    <td><span style="color: var(--primary);">System Admin</span></td>
+                    <td>
+                        <a href="{{ url_for('delete_admin', id=admin.id) }}" style="color: var(--danger);" onclick="return confirm('حذف؟')"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">لا يوجد مشرفين آخرين</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

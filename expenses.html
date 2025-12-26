@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 25px; align-items: start;">
+    
+    <div>
+        <div class="card" style="text-align: center; border-top: 4px solid var(--danger);">
+            <div style="color: var(--text-muted); margin-bottom: 10px;">إجمالي المصروفات</div>
+            <div style="font-size: 2.5rem; font-weight: 800; color: var(--danger);">{{ total }}</div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top: 0;">تسجيل مصروف</h3>
+            <form method="POST">
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:5px; color:var(--text-muted);">الوصف</label>
+                    <input type="text" name="description" class="form-control" required placeholder="فاتورة كهرباء...">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom:5px; color:var(--text-muted);">المبلغ</label>
+                    <input type="number" step="0.01" name="amount" class="form-control" required>
+                </div>
+                <button type="submit" class="btn" style="width: 100%; background: var(--danger);">تسجيل</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0; margin-bottom: 20px;">سجل المصروفات</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>الوصف</th>
+                    <th>المبلغ</th>
+                    <th>التاريخ</th>
+                    <th>حذف</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in expenses %}
+                <tr>
+                    <td>{{ e.description }}</td>
+                    <td style="color: var(--danger); font-weight: bold;">{{ e.amount }}</td>
+                    <td style="color: var(--text-muted); font-size: 0.9rem;">{{ e.date.strftime('%Y-%m-%d') }}</td>
+                    <td><a href="{{ url_for('delete_expense', id=e.id) }}" style="color: var(--text-muted);"><i class="fas fa-times"></i></a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">لا يوجد بيانات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

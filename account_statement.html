@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+
+    :root {
+        --bg-app: #0f111a;
+        --bg-panel: #1e212b;
+        --border-color: #2d3242;
+        --accent: #3b82f6;
+        --text-main: #e2e8f0;
+        --text-muted: #94a3b8;
+    }
+
+    .statement-container {
+        font-family: 'Tajawal', sans-serif;
+        padding: 30px;
+        background-color: var(--bg-app);
+        min-height: calc(100vh - 60px);
+    }
+
+    /* شريط الأدوات العلوي */
+    .toolbar {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 20px; padding: 15px;
+        background: var(--bg-panel); border: 1px solid var(--border-color);
+        border-radius: 12px;
+    }
+
+    .page-title { font-size: 1.5rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+    
+    .action-group { display: flex; gap: 10px; }
+    
+    .btn-action {
+        padding: 10px 20px; border: none; border-radius: 8px;
+        font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        transition: 0.2s; color: #fff; text-decoration: none;
+    }
+    .btn-print { background: #3b82f6; }
+    .btn-print:hover { background: #2563eb; }
+    
+    .btn-pdf { background: #ef4444; }
+    .btn-pdf:hover { background: #dc2626; }
+
+    /* تصميم ورقة الكشف (التي سيتم طباعتها) */
+    .statement-paper {
+        background: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        max-width: 1000px; margin: 0 auto;
+        color: var(--text-main);
+    }
+
+    .paper-header {
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 20px; margin-bottom: 30px;
+        display: flex; justify-content: space-between; align-items: flex-end;
+    }
+    
+    .company-info h2 { margin: 0; color: var(--accent); font-size: 1.8rem; }
+    .statement-meta { text-align: left; font-size: 0.9rem; color: var(--text-muted); }
+
+    /* الجدول */
+    .statement-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+    .statement-table th {
+        background: rgba(59, 130, 246, 0.1); color: var(--accent);
+        padding: 12px; text-align: right; border-bottom: 1px solid var(--border-color);
+    }
+    .statement-table td {
+        padding: 12px; border-bottom: 1px solid var(--border-color);
+        color: var(--text-main);
+    }
+    .statement-table tr:last-child td { border-bottom: none; }
+
+    .balance-row { background: rgba(16, 185, 129, 0.1); font-weight: bold; }
+    .credit { color: #10b981; } /* دائن - أخضر */
+    .debit { color: #ef4444; }  /* مدين - أحمر */
+
+    /* تنسيقات خاصة للطباعة (تخفي الأزرار وتحول الخلفية لأبيض) */
+    @media print {
+        body * { visibility: hidden; }
+        .statement-paper, .statement-paper * { visibility: visible; }
+        .statement-paper {
+            position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px;
+            background: #fff !important; color: #000 !important;
+            border: none; box-shadow: none;
+        }
+        .statement-table th { background: #f3f4f6 !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
+        .statement-table td { border-bottom: 1px solid #ddd !important; color: #000 !important; }
+        .toolbar, .sidebar, header { display: none !important; }
+        .balance-row { background: #eee !important; }
+    }
+</style>
+
+<div class="statement-container">
+    
+    <div class="toolbar">
+        <div class="page-title">
+            <i class="fas fa-file-invoice-dollar"></i> كشف حساب عملة
+        </div>
+        <div class="action-group">
+            <button onclick="printStatement()" class="btn-action btn-print">
+                <i class="fas fa-print"></i> طباعة الكشف
+            </button>
+            <button onclick="saveAsPDF()" class="btn-action btn-pdf">
+                <i class="fas fa-file-pdf"></i> حفظ PDF
+            </button>
+        </div>
+    </div>
+
+    <div id="printArea" class="statement-paper">
+        
+        <div class="paper-header">
+            <div class="company-info">
+                <h2>التعاون الدائم</h2>
+                <div style="margin-top:5px; font-size:0.9rem;">كشف حركة حساب / خزينة</div>
+            </div>
+            <div class="statement-meta">
+                <div><strong>التاريخ:</strong> <span id="currentDate"></span></div>
+                <div><strong>العملة:</strong> دينار ليبي</div>
+                <div><strong>المستخدم:</strong> Admin</div>
+            </div>
+        </div>
+
+        <table class="statement-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>التاريخ</th>
+                    <th>البيان / الوصف</th>
+                    <th>وارد (مدين)</th>
+                    <th>صادر (دائن)</th>
+                    <th>الرصيد</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trans in transactions %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ trans.date }}</td>
+                    <td>{{ trans.description }}</td>
+                    <td class="credit">{{ trans.debit if trans.debit > 0 else '-' }}</td>
+                    <td class="debit">{{ trans.credit if trans.credit > 0 else '-' }}</td>
+                    <td>{{ trans.balance }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td>1</td>
+                    <td>2025-01-01</td>
+                    <td>رصيد افتتاحي</td>
+                    <td class="credit">10,000.00</td>
+                    <td>-</td>
+                    <td>10,000.00</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>2025-01-05</td>
+                    <td>مبيعات نقدية (فاتورة #102)</td>
+                    <td class="credit">500.00</td>
+                    <td>-</td>
+                    <td>10,500.00</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>2025-01-06</td>
+                    <td>مشتريات بضاعة</td>
+                    <td>-</td>
+                    <td class="debit">2,000.00</td>
+                    <td>8,500.00</td>
+                </tr>
+                {% endfor %}
+                
+                <tr class="balance-row">
+                    <td colspan="3" style="text-align: left;">الرصيد النهائي:</td>
+                    <td class="credit">10,500.00</td>
+                    <td class="debit">2,000.00</td>
+                    <td>8,500.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top: 40px; display: flex; justify-content: space-between; font-size: 0.8rem; color: #666;">
+            <div>توقيع المحاسب: ....................</div>
+            <div>توقيع المدير: ....................</div>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 0.7rem; color: #999;">
+            تم استخراج هذا الكشف من نظام التعاون الدائم بتاريخ <span id="printTime"></span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // تعيين التاريخ الحالي
+    const now = new Date();
+    document.getElementById('currentDate').innerText = now.toLocaleDateString('en-GB');
+    document.getElementById('printTime').innerText = now.toLocaleString('en-GB');
+
+    // دالة الطباعة
+    function printStatement() {
+        window.print();
+    }
+
+    // دالة حفظ PDF
+    function saveAsPDF() {
+        const element = document.getElementById('printArea');
+        
+        // إعدادات ملف PDF
+        const opt = {
+            margin:       0.5,
+            filename:     'Account_Statement_' + new Date().toISOString().slice(0,10) + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true }, // scale 2 لجودة أعلى
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        // لتجنب مشكلة الخلفية الداكنة في الـ PDF، سنقوم بتغيير الستايل مؤقتاً
+        const originalBg = element.style.background;
+        const originalColor = element.style.color;
+        
+        // تحويل الألوان للأبيض والأسود قبل التصدير
+        element.style.background = '#ffffff';
+        element.style.color = '#000000';
+        // تعديل ألوان الجدول والرؤوس يدوياً إذا لزم عبر كلاسات إضافية، 
+        // لكن html2pdf سيأخذ لقطة كما يظهر العنصر. 
+        
+        // الأفضل: الاعتماد على كلاس يطبق ستايل الورقة البيضاء
+        element.classList.add('pdf-mode'); // (يمكنك إضافة ستايل خاص لهذا الكلاس)
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            // إعادة الألوان لطبيعتها بعد التحميل
+            element.style.background = originalBg;
+            element.style.color = originalColor;
+            element.classList.remove('pdf-mode');
+        });
+    }
+</script>
+{% endblock %}

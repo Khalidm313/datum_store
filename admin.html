@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* تنسيقات لوحة التحكم */
+    .admin-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    
+    /* بادجات الحالة */
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: inline-block; }
+    .st-active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .st-expired { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .st-stopped { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+    /* تنسيق المودال (النافذة المنبثقة) */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: #fff; margin: 10% auto; padding: 25px; border-radius: 12px; width: 400px; position: relative; animation: slideDown 0.3s; }
+    @keyframes slideDown { from {top: -50px; opacity: 0;} to {top: 0; opacity: 1;} }
+    .close-modal { position: absolute; left: 20px; top: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
+    
+    /* خيارات الباقات */
+    .plan-option { border: 2px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+    .plan-option:hover { border-color: #3b82f6; background: #f0f9ff; }
+    .plan-option.selected { border-color: #3b82f6; background: #eff6ff; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+    .plan-price { font-weight: bold; color: #3b82f6; font-size: 1.1rem; }
+
+    /* أزرار الإجراءات */
+    .btn-action { text-decoration: none; padding: 6px 10px; border-radius: 6px; color: #fff; font-size: 0.9rem; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+    .btn-action:hover { transform: translateY(-2px); opacity: 0.9; }
+</style>
+
+<div class="page-header">
+    <h2>لوحة تحكم المشرف</h2>
+    <div style="color: #666;">إدارة المتاجر والاشتراكات</div>
+</div>
+
+<div class="admin-card">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="border-bottom: 2px solid #eee; text-align: right;">
+                <th style="padding: 15px;">المتجر</th>
+                <th>المالك</th>
+                <th>المنتجات</th>
+                <th>حالة الاشتراك</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in shops %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 15px;">
+                    <div style="font-weight: bold; font-size: 1.05rem;">{{ item.shop.name }}</div>
+                    <div style="font-size: 0.85rem; color: #888;">{{ item.shop.phone }}</div>
+                </td>
+                <td>{{ item.owner_name }}</td>
+                <td style="font-weight: bold;">{{ item.products }}</td>
+                <td>
+                    {% if not item.shop.is_active %}
+                        <span class="status-badge st-stopped"><i class="fas fa-ban"></i> متوقف يدوياً</span>
+                    {% elif item.status == 'active' %}
+                        <span class="status-badge st-active"><i class="fas fa-check-circle"></i> نشط ({{ item.days_left }} يوم)</span>
+                    {% else %}
+                        <span class="status-badge st-expired"><i class="fas fa-clock"></i> منتهي الصلاحية</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 6px;">
+                        
+                        <button onclick="openRenewModal('{{ item.shop.id }}', '{{ item.shop.name }}')" class="btn-action" style="background: #3b82f6; width: auto; padding: 0 12px;" title="تجديد الاشتراك">
+                            <i class="fas fa-sync-alt" style="margin-left: 5px;"></i> تجديد
+                        </button>
+
+                        <a href="{{ url_for('toggle_shop_status', id=item.shop.id) }}" 
+                           class="btn-action" 
+                           style="background: {% if item.shop.is_active %}#f59e0b{% else %}#10b981{% endif %};"
+                           title="{% if item.shop.is_active %}إيقاف المتجر مؤقتاً{% else %}إعادة تفعيل المتجر{% endif %}">
+                            <i class="fas {% if item.shop.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                        </a>
+                        
+                        <a href="{{ url_for('admin_edit_shop', id=item.shop.id) }}" class="btn-action" style="background: #64748b;" title="تعديل البيانات">
+                            <i class="fas fa-edit"></i>
+                        </a>
+
+                        <a href="{{ url_for('delete_shop', id=item.shop.id) }}" onclick="return confirm('تحذير: سيتم حذف المتجر وجميع بياناته نهائياً! هل أنت متأكد؟')" class="btn-action" style="background: #ef4444;" title="حذف نهائي">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="renewModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeRenewModal()">&times;</span>
+        <h3 style="margin-top: 0;">تجديد اشتراك: <span id="modalShopName" style="color: #3b82f6;"></span></h3>
+        
+        <form action="{{ url_for('renew_subscription') }}" method="POST" id="renewForm">
+            <input type="hidden" name="shop_id" id="modalShopId">
+            <input type="hidden" name="plan_name" id="selectedPlanName" value="1 Month">
+            <input type="hidden" name="price" id="selectedPrice" value="150">
+
+            <p style="margin-bottom: 15px; font-weight: bold; color: #666;">اختر الباقة:</p>
+
+            <div class="plan-option selected" onclick="selectPlan(this, '1 Month', 150)">
+                <div>
+                    <div style="font-weight: bold;">باقة شهرية</div>
+                    <div style="font-size: 0.8rem; color: #888;">لمدة 30 يوم</div>
+                </div>
+                <div class="plan-price">150 د.ل</div>
+            </div>
+
+            <div class="plan-option" onclick="selectPlan(this, '6 Months', 800)">
+                <div>
+                    <div style="font-weight: bold;">باقة نصف سنوية</div>
+                    <div style="font-size: 0.8rem; color: #888;">لمدة 180 يوم (توفير 10%)</div>
+                </div>
+                <div class="plan-price">800 د.ل</div>
+            </div>
+
+            <div class="plan-option" onclick="selectPlan(this, '1 Year', 1500)">
+                <div>
+                    <div style="font-weight: bold;">باقة سنوية</div>
+                    <div style="font-size: 0.8rem; color: #888;">لمدة 365 يوم (توفير 20%)</div>
+                </div>
+                <div class="plan-price">1500 د.ل</div>
+            </div>
+
+            <button type="submit" style="width: 100%; background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 15px;">
+                تأكيد التجديد وإصدار الفاتورة
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById("renewModal");
+    const modalShopId = document.getElementById("modalShopId");
+    const modalShopName = document.getElementById("modalShopName");
+    const planNameInput = document.getElementById("selectedPlanName");
+    const priceInput = document.getElementById("selectedPrice");
+
+    function openRenewModal(id, name) {
+        modalShopId.value = id;
+        modalShopName.innerText = name;
+        modal.style.display = "block";
+    }
+
+    function closeRenewModal() {
+        modal.style.display = "none";
+    }
+
+    function selectPlan(element, name, price) {
+        document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        planNameInput.value = name;
+        priceInput.value = price;
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeRenewModal();
+        }
+    }
+</script>
+{% endblock %}
