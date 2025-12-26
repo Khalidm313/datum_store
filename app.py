@@ -9,7 +9,18 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this'
 
 # إعدادات قاعدة البيانات
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:kH0911534871(:@localhost/store_db'
+# إعدادات قاعدة البيانات (Render + Local)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    # Render PostgreSQL
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+else:
+    # Local / Fallback
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -711,4 +722,5 @@ if __name__ == '__main__':
             db.session.add(admin)
             db.session.commit()
             print("Admin Created")
+
     app.run(debug=True)
