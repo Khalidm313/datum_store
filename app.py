@@ -46,6 +46,8 @@ login_manager.init_app(app)
 # -------------------------
 
 class User(UserMixin, db.Model):
+    __tablename__ = "users"
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(300), nullable=False)
@@ -57,12 +59,31 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # -------------------------
+# AUTO INIT DATABASE (IMPORTANT)
+# -------------------------
+
+@app.before_first_request
+def init_database():
+    db.create_all()
+
+    # create admin once
+    if not User.query.filter_by(username="admin").first():
+        admin_pass = generate_password_hash("admin123", method="scrypt")
+        admin = User(
+            username="admin",
+            password=admin_pass,
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("✅ Admin user created")
+
+# -------------------------
 # ROUTES
 # -------------------------
 
 @app.route('/')
 def index():
-    # لا يوجد index.html → نوجه مباشرة إلى login
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -112,25 +133,3 @@ def dashboard():
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
-# -------------------------
-# INIT DATABASE
-# -------------------------
-
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-
-        # Create admin if not exists
-        if not User.query.filter_by(username='admin').first():
-            admin_pass = generate_password_hash('admin123', method='scrypt')
-            admin = User(
-                username='admin',
-                password=admin_pass,
-                is_admin=True
-            )
-            db.session.add(admin)
-            db.session.commit()
-            print("Admin user created")
-
-    # ❌ لا تستخدم app.run() على Render
