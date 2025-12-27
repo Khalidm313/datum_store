@@ -14,7 +14,8 @@ import os
 # -------------------------
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'CHANGE-THIS-SECRET-KEY'
+# Change this to a random string in your Render Environment Variables for better security
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "CHANGE-THIS-SECRET-KEY")
 
 # -------------------------
 # DATABASE CONFIG (Render + Local)
@@ -23,6 +24,7 @@ app.config['SECRET_KEY'] = 'CHANGE-THIS-SECRET-KEY'
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
+    # Fix for Render/Heroku postgres URLs which use "postgres://" instead of "postgresql://"
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
@@ -65,6 +67,7 @@ def load_user(user_id):
 with app.app_context():
     db.create_all()
 
+    # Create default admin if it doesn't exist
     if not User.query.filter_by(username="admin").first():
         admin_pass = generate_password_hash("admin123", method="scrypt")
         admin = User(
@@ -126,8 +129,23 @@ def login():
 def dashboard():
     return render_template('dashboard.html', user=current_user)
 
+# --- ADDED ROUTE TO FIX RENDER ERROR ---
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    # Only allow access if the user is an admin
+    if not current_user.is_admin:
+        flash("You do not have permission to access the Admin Panel.", "danger")
+        return redirect(url_for('dashboard'))
+    
+    all_users = User.query.all()
+    return render_template('admin_dashboard.html', users=all_users)
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+if __name__ == "__main__":
+    app.run(debug=True)
