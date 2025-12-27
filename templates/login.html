@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>دخول التاجر | Datum Store</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
 
         :root {
-            /* الثيم الأزرق */
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
             --primary-glow: rgba(37, 99, 235, 0.5);
@@ -26,11 +26,9 @@
 
         .split-container { display: flex; height: 100vh; flex-direction: row; }
 
-        /* --- الجانب الأيمن: نموذج الدخول --- */
         .login-side {
             flex: 1; display: flex; justify-content: center; align-items: center;
             padding: 40px; background: #ffffff; position: relative; z-index: 10;
-            /* حركة دخول من اليمين */
             animation: slideInRight 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
         }
 
@@ -80,97 +78,47 @@
             transition: 0.3s; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
             display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-        .submit-btn::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: 0.5s;
-        }
-        .submit-btn:hover::before { left: 100%; }
         .submit-btn:hover { 
             background: var(--primary-dark); transform: translateY(-3px); 
             box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4); 
         }
 
-        /* --- الجانب الأيسر: البراند --- */
         .brand-side {
             flex: 1.2;
             background-color: #020617;
             background-image: radial-gradient(circle at 30% 70%, #1e3a8a 0%, #020617 70%);
             display: flex; justify-content: center; align-items: center;
             position: relative; overflow: hidden; padding: 40px;
-            /* حركة دخول من اليسار */
             animation: slideInLeft 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
         }
 
-        .particle {
-            position: absolute; border-radius: 50%; background: rgba(37, 99, 235, 0.4);
-            animation: floatParticle linear infinite;
-        }
-        .p1 { width: 150px; height: 150px; top: -5%; right: -5%; filter: blur(60px); animation-duration: 25s; }
-        .p2 { width: 100px; height: 100px; bottom: 20%; left: 10%; background: rgba(29, 78, 216, 0.3); filter: blur(40px); animation-duration: 18s; animation-direction: reverse; }
-        .p3 { width: 8px; height: 8px; top: 40%; right: 40%; background: #fff; opacity: 0.6; filter: blur(1px); animation: sparkle 4s infinite; }
-
-        .brand-content {
-            text-align: center; position: relative; z-index: 2;
-            animation: zoomIn 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s backwards;
-        }
+        .brand-content { text-align: center; position: relative; z-index: 2; }
 
         .logo-container {
             display: inline-block; margin-bottom: 30px;
-            border-radius: 35px; padding: 5px; background: transparent;
+            border-radius: 35px; padding: 5px;
             box-shadow: 0 0 60px rgba(37, 99, 235, 0.5); 
             animation: logoFloat 6s ease-in-out infinite;
         }
 
-        .app-icon {
-            width: 120px; height: 120px; border-radius: 30px;
-            object-fit: cover; display: block;
-        }
+        .app-icon { width: 120px; height: 120px; border-radius: 30px; object-fit: cover; display: block; }
 
-        /* --- تنسيق القائمة الجديد (المطابق للصورة) --- */
         .brand-features {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; /* محاذاة لليمين في وضع RTL */
-            margin-top: 40px;
-            padding: 0;
-            opacity: 0; 
+            display: flex; flex-direction: column; align-items: flex-start;
+            margin-top: 40px; padding: 0; opacity: 0; 
             animation: slideUpFade 0.8s ease-out 0.8s forwards;
         }
         
         .brand-features li {
-            list-style: none; 
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #ffffff;
-            display: flex; 
-            align-items: center; 
-            gap: 15px;
-            width: 100%;
+            list-style: none; margin-bottom: 20px; font-size: 1.2rem; font-weight: 700;
+            color: #ffffff; display: flex; align-items: center; gap: 15px;
         }
 
-        .brand-features i { 
-            color: #2563eb;       /* لون الدائرة الزرقاء */
-            font-size: 1.6rem;
-            background: #fff;     /* خلفية بيضاء لتعبئة الدائرة */
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* خدعة لجعل الأيقونة تبدو كدائرة زرقاء صلبة مع علامة صح */
-            box-shadow: inset 0 0 0 2px #2563eb; 
-        }
+        .brand-features i { color: #2563eb; background: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- Animations Keyframes --- */
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         @keyframes slideUpFade { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes floatParticle { from { transform: translate(0, 0); } to { transform: translate(-30px, 30px); } }
-        @keyframes sparkle { 0%, 100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.5); } }
-        @keyframes zoomIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 
         @media (max-width: 1000px) { .brand-side { display: none; } }
@@ -179,7 +127,6 @@
 <body>
 
 <div class="split-container">
-    
     <div class="login-side">
         <div class="form-wrapper">
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -187,8 +134,8 @@
                     {% for category, message in messages %}
                         <div class="animate__animated animate__shakeX" 
                              style="padding: 15px; margin-bottom: 20px; border-radius: 12px; font-weight: bold; text-align: center;
-                                    background: {{ '#fee2e2' if category == 'error' else '#dbeafe' }}; 
-                                    color: {{ '#dc2626' if category == 'error' else '#1e40af' }};">
+                                    background: {{ '#fee2e2' if category in ['error', 'danger'] else '#dbeafe' }}; 
+                                    color: {{ '#dc2626' if category in ['error', 'danger'] else '#1e40af' }};">
                             {{ message }}
                         </div>
                     {% endfor %}
@@ -216,7 +163,7 @@
                 </button>
             </form>
 
-            <div class="animate__animated animate__fadeIn animate__delay-1s" style="text-align: center; margin-top: 35px;">
+            <div style="text-align: center; margin-top: 35px;">
                 <span style="color: #64748b;">ليس لديك حساب؟</span>
                 <a href="{{ url_for('register') }}" style="color: var(--primary); text-decoration: none; font-weight: 800; margin-right: 5px;">أنشئ متجرك الآن</a>
             </div>
@@ -224,13 +171,9 @@
     </div>
 
     <div class="brand-side">
-        <div class="particle p1"></div>
-        <div class="particle p2"></div>
-        <div class="particle p3"></div>
-
         <div class="brand-content">
             <div class="logo-container">
-                <img src="{{ url_for('static', filename='images/login-logo.jpg') }}" alt="Datum Logo" class="app-icon">
+                <img src="{{ url_for('static', filename='login-logo.jpg') }}" alt="Datum Logo" class="app-icon">
             </div>
 
             <h1 style="color: #fff; font-size: 3rem; font-weight: 900; margin: 0;">Datum Store</h1>
@@ -242,7 +185,6 @@
             </ul>
         </div>
     </div>
-
 </div>
 
 </body>
