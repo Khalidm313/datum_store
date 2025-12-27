@@ -116,7 +116,7 @@ def register():
     return render_template('register.html')
 
 # -------------------------
-# DASHBOARD ROUTE
+# DASHBOARD ROUTE (Fixes 500 JSON Error)
 # -------------------------
 @app.route('/dashboard')
 @login_required
@@ -133,13 +133,14 @@ def dashboard():
     )
 
 # -------------------------
-# ADMIN PANEL ROUTES
+# ADMIN PANEL ROUTES (Fixes 500 Routing Error)
 # -------------------------
 @app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
     
+    # Logic to populate the admin table correctly
     shops_data = []
     for s in Shop.query.all():
         days = (s.subscription_end - datetime.utcnow()).days
@@ -187,7 +188,7 @@ def delete_shop(id):
     return redirect(url_for('admin_dashboard'))
 
 # -------------------------
-# STORE ROUTES
+# STORE ROUTES (Fixes 405 Method Error)
 # -------------------------
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
@@ -204,6 +205,7 @@ def employees():
 @app.route('/settings')
 @login_required
 def settings():
+    # Pass the shop object to fix 'UndefinedError: shop'
     return render_template('settings.html', shop=current_user.shop)
 
 # Placeholders
