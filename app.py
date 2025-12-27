@@ -36,6 +36,8 @@ class Shop(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     subscription_end = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    # Relationship to products
+    products = db.relationship('Product', backref='shop', lazy=True)
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -44,6 +46,17 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(300), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     shop = db.relationship('Shop', backref='owner', uselist=False)
+
+# NEW: Product Model
+class Product(db.Model):
+    __tablename__ = "products"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    price = db.Column(db.Float, nullable=False, default=0.0)
+    stock = db.Column(db.Integer, default=0)
+    barcode = db.Column(db.String(50))
+    category = db.Column(db.String(50))
+    shop_id = db.Column(db.Integer, db.ForeignKey('shops.id'), nullable=False)
 
 # -------------------------
 # LOGIN MANAGER
@@ -57,25 +70,24 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # -------------------------
-# CRITICAL FIX: INITIALIZE DATABASE IMMEDIATELY
+# DATABASE INITIALIZATION
 # -------------------------
-# This block runs automatically when Gunicorn starts the app
-with app.app_context():
-    db.create_all()
-    
-    # Create Admin if missing
-    if not User.query.filter_by(username="admin").first():
-        try:
-            admin = User(username="admin", password=generate_password_hash("admin123", method="scrypt"), is_admin=True)
-            db.session.add(admin)
-            db.session.commit()
-            
-            admin_shop = Shop(name="Datum Admin", user_id=admin.id, phone="0000000000")
-            db.session.add(admin_shop)
-            db.session.commit()
-            print("✅ Database & Admin Initialized Successfully")
-        except Exception as e:
-            print(f"❌ Error creating admin: {e}")
+def init_db():
+    with app.app_context():
+        db.create_all()
+        # Ensure Admin Exists
+        if not User.query.filter_by(username="admin").first():
+            try:
+                admin = User(username="admin", password=generate_password_hash("admin123", method="scrypt"), is_admin=True)
+                db.session.add(admin)
+                db.session.commit()
+                # Admin needs a shop too
+                admin_shop = Shop(name="Datum Admin", user_id=admin.id, phone="0000000000")
+                db.session.add(admin_shop)
+                db.session.commit()
+                print("✅ Database, Products Table & Admin Initialized")
+            except Exception as e:
+                print(f"❌ Error creating admin: {e}")
 
 # -------------------------
 # AUTH ROUTES
@@ -90,7 +102,13 @@ def login():
         user = User.query.filter_by(username=request.form['username']).first()
         if user and check_password_hash(user.password, request.form['password']):
             login_user(user)
-            return redirect(url_for('dashboard'))
+            
+            # FIX 1: Redirect Admins to Admin Dashboard, Users to Shop Dashboard
+            if user.is_admin:
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('dashboard'))
+                
         flash('بيانات الدخول غير صحيحة', 'danger')
     return render_template('login.html')
 
@@ -116,11 +134,15 @@ def register():
     return render_template('register.html')
 
 # -------------------------
-# DASHBOARD ROUTE (Fixes 500 JSON Error)
+# USER DASHBOARD
 # -------------------------
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # If admin tries to go here, send them back to admin dashboard
+    if current_user.is_admin:
+        return redirect(url_for('admin_dashboard'))
+
     return render_template(
         'dashboard.html', 
         user=current_user,
@@ -133,21 +155,61 @@ def dashboard():
     )
 
 # -------------------------
-# ADMIN PANEL ROUTES (Fixes 500 Routing Error)
+# STORE MANAGEMENT (PRODUCTS)
+# -------------------------
+@app.route('/products', methods=['GET', 'POST'])
+@login_required
+def products():
+    # FIX 2: Enable Adding Products
+    if request.method == 'POST':
+        name = request.form.get('name')
+        price = request.form.get('price')
+        stock = request.form.get('stock')
+        category = request.form.get('category')
+        barcode = request.form.get('barcode')
+
+        if current_user.shop:
+            new_product = Product(
+                name=name,
+                price=float(price),
+                stock=int(stock),
+                category=category,
+                barcode=barcode,
+                shop_id=current_user.shop.id
+            )
+            db.session.add(new_product)
+            db.session.commit()
+            flash("تم إضافة المنتج بنجاح", "success")
+        else:
+            flash("حدث خطأ: لا يوجد متجر مرتبط", "danger")
+    
+    # Show only this user's products
+    my_products = []
+    if current_user.shop:
+        my_products = Product.query.filter_by(shop_id=current_user.shop.id).all()
+
+    return render_template('products.html', products=my_products)
+
+# -------------------------
+# ADMIN PANEL
 # -------------------------
 @app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
-    if not current_user.is_admin: return redirect(url_for('dashboard'))
+    # Security check
+    if not current_user.is_admin: 
+        return redirect(url_for('dashboard'))
     
-    # Logic to populate the admin table correctly
     shops_data = []
     for s in Shop.query.all():
         days = (s.subscription_end - datetime.utcnow()).days
+        # Count products for this shop
+        product_count = Product.query.filter_by(shop_id=s.id).count()
+        
         shops_data.append({
             'shop': s, 
             'owner_name': s.owner.username, 
-            'products': 0, 
+            'products': product_count, 
             'status': 'active' if days > 0 else 'expired', 
             'days_left': max(0, days)
         })
@@ -182,20 +244,16 @@ def toggle_shop_status(id):
 def delete_shop(id):
     if not current_user.is_admin: return redirect(url_for('dashboard'))
     shop = Shop.query.get_or_404(id)
+    # Delete products first to avoid DB errors
+    Product.query.filter_by(shop_id=shop.id).delete()
     db.session.delete(shop.owner)
     db.session.delete(shop)
     db.session.commit()
     return redirect(url_for('admin_dashboard'))
 
 # -------------------------
-# STORE ROUTES (Fixes 405 Method Error)
+# OTHER ROUTES
 # -------------------------
-@app.route('/products', methods=['GET', 'POST'])
-@login_required
-def products(): 
-    if request.method == 'POST': flash("سيتم تفعيل الإضافة قريباً", "info")
-    return render_template('products.html')
-
 @app.route('/employees', methods=['GET', 'POST'])
 @login_required
 def employees():
@@ -205,10 +263,8 @@ def employees():
 @app.route('/settings')
 @login_required
 def settings():
-    # Pass the shop object to fix 'UndefinedError: shop'
     return render_template('settings.html', shop=current_user.shop)
 
-# Placeholders
 @app.route('/pos')
 @login_required
 def pos(): return render_template('pos.html')
@@ -240,4 +296,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
