@@ -120,14 +120,18 @@
             animation: zoomIn 1s 0.2s backwards;
         }
 
-        /* FIXED: Image Styling */
-        .logo-img {
-            width: 120px; height: 120px;
+        /* --- THE ICON BOX STYLE (Restored) --- */
+        .icon-box {
+            width: 100px; height: 100px;
+            background: #2563eb;
             border-radius: 25px;
-            object-fit: cover;
+            display: flex; align-items: center; justify-content: center;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
             animation: floatIcon 6s ease-in-out infinite;
+        }
+        .icon-box i {
+            font-size: 3.5rem; color: #fff;
         }
 
         @keyframes floatIcon {
@@ -221,7 +225,9 @@
 
         <div class="brand-glass-card">
             
-            <img src="{{ url_for('static', filename='login-logo.jpg') }}" alt="Datum Store" class="logo-img">
+            <div class="icon-box">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
 
             <h1>Datum Store</h1>
             <p class="brand-desc">
