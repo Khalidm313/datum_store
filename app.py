@@ -30,7 +30,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # -------------------------
-# MODELS (Fixes the "No attribute shop" error)
+# MODELS
 # -------------------------
 class Shop(db.Model):
     __tablename__ = "shops"
@@ -46,23 +46,24 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationship to Shop
     shop = db.relationship('Shop', backref='owner', uselist=False)
+
+# -------------------------
+# LOGIN MANAGER (Fixed Order)
+# -------------------------
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
-login_manager = LoginManager()
-login_manager.login_view = "login"
-login_manager.init_app(app)
 
 # -------------------------
 # INIT DATABASE
 # -------------------------
 with app.app_context():
     db.create_all()
-    # Create default admin and shop if they don't exist
     admin_user = User.query.filter_by(username="admin").first()
     if not admin_user:
         admin_pass = generate_password_hash("admin123", method="scrypt")
@@ -76,7 +77,7 @@ with app.app_context():
         print("✅ Admin user and Shop created")
 
 # -------------------------
-# AUTH ROUTES
+# ROUTES
 # -------------------------
 @app.route('/')
 def index():
@@ -108,24 +109,12 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
-        # Create a default shop for new user
         new_shop = Shop(name=f"متجر {username}", user_id=new_user.id)
         db.session.add(new_shop)
         db.session.commit()
-
-        flash('تم إنشاء الحساب بنجاح', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-# -------------------------
-# APPLICATION ROUTES (Placeholders for base.html)
-# -------------------------
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -145,8 +134,7 @@ def manage_admins():
 
 @app.route('/admin_profile')
 @login_required
-def admin_profile():
-    return "<h1>ملفي الشخصي</h1>"
+def admin_profile(): return "<h1>ملفي الشخصي</h1>"
 
 @app.route('/pos')
 @login_required
@@ -179,6 +167,12 @@ def settings(): return "<h1>الإعدادات</h1>"
 @app.route('/support')
 @login_required
 def support(): return "<h1>الدعم الفني</h1>"
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 if __name__ == "__main__":
     app.run(debug=True)
