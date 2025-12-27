@@ -25,7 +25,7 @@
 
         .split-container { display: flex; height: 100vh; flex-direction: row; }
 
-        /* --- الجانب الأيمن: نموذج الدخول --- */
+        /* --- Right Side: Login Form --- */
         .login-side {
             flex: 1; display: flex; justify-content: center; align-items: center;
             padding: 40px; background: #ffffff; position: relative; z-index: 10;
@@ -83,11 +83,10 @@
             box-shadow: 0 15px 30px rgba(37, 99, 235, 0.3); 
         }
 
-        /* --- الجانب الأيسر: البراند --- */
+        /* --- Left Side: Brand --- */
         .brand-side {
             flex: 1.2;
             background-color: #020617;
-            /* خلفية زرقاء داكنة مثل الصورة */
             background-image: radial-gradient(circle at 50% 50%, #172554 0%, #020617 80%);
             display: flex; justify-content: center; align-items: center;
             position: relative; overflow: hidden; padding: 40px;
@@ -102,43 +101,33 @@
         .p1 { width: 200px; height: 200px; top: 10%; right: 10%; filter: blur(80px); animation-duration: 20s; }
         .p2 { width: 150px; height: 150px; bottom: 10%; left: 10%; background: rgba(59, 130, 246, 0.2); filter: blur(60px); animation-duration: 15s; animation-direction: reverse; }
 
-        /* --- تصميم الكرت الزجاجي (نفس أبعاد صفحة التسجيل) --- */
         .brand-glass-card {
-            width: 340px; /* عرض ثابت ليعطي شكل المستطيل */
-            min-height: 480px; /* ارتفاع ثابت تقريباً */
-            
-            background: rgba(255, 255, 255, 0.03); /* شفافية عالية جداً */
-            backdrop-filter: blur(20px); /* تمويه قوي */
+            width: 340px;
+            min-height: 480px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            
-            border: 1px solid rgba(255, 255, 255, 0.08); /* حدود خفيفة جداً */
-            border-radius: 35px; /* زوايا دائرية كبيرة */
-            
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 35px;
             padding: 40px 30px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* ظل عميق */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             z-index: 2;
-            
             animation: zoomIn 1s 0.2s backwards;
         }
 
-        /* الأيقونة داخل الكرت */
-        .icon-box {
-            width: 100px; height: 100px;
-            background: #2563eb; /* خلفية الأيقونة زرقاء */
+        /* FIXED: Image Styling */
+        .logo-img {
+            width: 120px; height: 120px;
             border-radius: 25px;
-            display: flex; align-items: center; justify-content: center;
+            object-fit: cover;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
             animation: floatIcon 6s ease-in-out infinite;
-        }
-        .icon-box i {
-            font-size: 3.5rem; color: #fff;
         }
 
         @keyframes floatIcon {
@@ -152,42 +141,22 @@
         }
         
         .brand-desc {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.95rem;
-            line-height: 1.6;
-            margin-bottom: 30px;
+            color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.6; margin-bottom: 30px;
         }
 
-        /* قائمة الميزات */
-        .features-list {
-            width: 100%;
-            padding: 0; margin: 0;
-            text-align: right;
-        }
+        .features-list { width: 100%; padding: 0; margin: 0; text-align: right; }
         
         .features-list li {
-            list-style: none; 
-            margin-bottom: 12px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #ffffff;
-            display: flex; 
-            align-items: center; 
-            gap: 10px;
-            background: rgba(255,255,255,0.05); /* خلفية خفيفة لكل عنصر */
-            padding: 10px 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.05);
+            list-style: none; margin-bottom: 12px; font-size: 0.9rem; font-weight: 700;
+            color: #ffffff; display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.05); padding: 10px 15px;
+            border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);
         }
 
         .features-list i { 
-            color: #2563eb;
-            font-size: 0.8rem;
-            background: #fff;
-            border-radius: 50%;
-            width: 18px; height: 18px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
+            color: #2563eb; font-size: 0.8rem; background: #fff;
+            border-radius: 50%; width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
 
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
@@ -252,9 +221,7 @@
 
         <div class="brand-glass-card">
             
-            <div class="icon-box">
-                <i class="fas fa-shopping-cart"></i>
-            </div>
+            <img src="{{ url_for('static', filename='login-logo.jpg') }}" alt="Datum Store" class="logo-img">
 
             <h1>Datum Store</h1>
             <p class="brand-desc">
