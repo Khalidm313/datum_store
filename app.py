@@ -59,14 +59,12 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # -------------------------
-# AUTO INIT DATABASE (IMPORTANT)
+# INIT DATABASE (Flask 3 SAFE)
 # -------------------------
 
-@app.before_first_request
-def init_database():
+with app.app_context():
     db.create_all()
 
-    # create admin once
     if not User.query.filter_by(username="admin").first():
         admin_pass = generate_password_hash("admin123", method="scrypt")
         admin = User(
