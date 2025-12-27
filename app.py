@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "datum-pro-key-2025")
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "datum-production-key-2025")
 
 # Database Configuration
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -46,18 +46,6 @@ class User(UserMixin, db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Initialize Database Function
-def init_db():
-    with app.app_context():
-        db.create_all()
-        if not User.query.filter_by(username="admin").first():
-            admin = User(username="admin", password=generate_password_hash("admin123", method="scrypt"), is_admin=True)
-            db.session.add(admin)
-            db.session.commit()
-            db.session.add(Shop(name="Datum Admin", user_id=admin.id, phone="0900000000"))
-            db.session.commit()
-            print("✅ Database and Admin Initialized")
-
 # --- ROUTES ---
 
 @app.route('/')
@@ -71,13 +59,21 @@ def login():
         if user and check_password_hash(user.password, request.form['password']):
             login_user(user)
             return redirect(url_for('dashboard'))
-        flash('خطأ في البيانات', 'danger')
+        flash('خطأ في البيانات، يرجى المحاولة مرة أخرى', 'danger')
     return render_template('login.html')
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', user=current_user, todays_sales="0", month_sales="0", month_expenses="0", net_profit="0", chart_labels=[], chart_data=[0,0,0,0,0,0,0])
+    # Pass all variables expected by dashboard.html to prevent UndefinedError
+    return render_template('dashboard.html', 
+                           user=current_user, 
+                           todays_sales="0", 
+                           month_sales="0", 
+                           month_expenses="0", 
+                           net_profit="0", 
+                           chart_labels=[], 
+                           chart_data=[0,0,0,0,0,0,0])
 
 @app.route('/admin_dashboard')
 @login_required
@@ -86,54 +82,43 @@ def admin_dashboard():
     shops_data = []
     for s in Shop.query.all():
         days = (s.subscription_end - datetime.utcnow()).days
-        shops_data.append({'shop': s, 'owner_name': s.owner.username, 'products': 0, 'status': 'active' if days > 0 else 'expired', 'days_left': max(0, days)})
+        shops_data.append({
+            'shop': s, 
+            'owner_name': s.owner.username, 
+            'products': 0, 
+            'status': 'active' if days > 0 else 'expired', 
+            'days_left': max(0, days)
+        })
     return render_template('admin.html', shops=shops_data)
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products(): 
-    if request.method == 'POST': flash("سيتم تفعيل الإضافة قريباً", "info")
+    if request.method == 'POST': flash("سيتم تفعيل هذه الميزة قريباً", "info")
     return render_template('products.html')
 
-# Placeholder routes to prevent BuildErrors in base.html
+# Essential placeholder routes to prevent BuildErrors in base.html
 @app.route('/register', methods=['GET', 'POST'])
 def register(): return render_template('register.html')
-@app.route('/pos')
-@login_required
-def pos(): return render_template('pos.html')
-@app.route('/customers')
-@login_required
-def customers(): return render_template('customers.html')
-@app.route('/expenses')
-@login_required
-def expenses(): return render_template('expenses.html')
-@app.route('/employees', methods=['GET', 'POST'])
-@login_required
-def employees(): return render_template('employees.html')
-@app.route('/invoices')
-@login_required
-def invoices(): return render_template('invoices.html')
+
 @app.route('/settings')
 @login_required
 def settings(): return render_template('settings.html', shop=current_user.shop)
-@app.route('/support')
-@login_required
-def support(): return render_template('support.html')
-@app.route('/admin_profile')
-@login_required
-def admin_profile(): return render_template('admin_profile.html')
-@app.route('/manage_admins')
-@login_required
-def manage_admins(): return render_template('admin_users.html')
-@app.route('/renew_subscription', methods=['POST'])
-@login_required
-def renew_subscription(): return redirect(url_for('admin_dashboard'))
 
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
+# Initialization
 if __name__ == "__main__":
-    init_db()
+    with app.app_context():
+        db.create_all()
+        # Seed initial Admin if missing
+        if not User.query.filter_by(username="admin").first():
+            admin = User(username="admin", password=generate_password_hash("admin123", method="scrypt"), is_admin=True)
+            db.session.add(admin)
+            db.session.commit()
+            db.session.add(Shop(name="Admin Shop", user_id=admin.id))
+            db.session.commit()
     app.run()
