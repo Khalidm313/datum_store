@@ -49,7 +49,7 @@ class User(UserMixin, db.Model):
     shop = db.relationship('Shop', backref='owner', uselist=False)
 
 # -------------------------
-# LOGIN MANAGER (Fixed Order)
+# LOGIN MANAGER
 # -------------------------
 login_manager = LoginManager()
 login_manager.login_view = "login"
@@ -118,7 +118,13 @@ def register():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', user=current_user)
+    # FIX: Added empty lists for the JavaScript chart in dashboard.html
+    return render_template(
+        'dashboard.html', 
+        user=current_user, 
+        chart_labels=[], 
+        chart_data=[]
+    )
 
 @app.route('/admin_dashboard')
 @login_required
