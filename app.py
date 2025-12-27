@@ -12,19 +12,14 @@ import os
 # -------------------------
 # APP CONFIG
 # -------------------------
-
 app = Flask(__name__)
-# Change this to a random string in your Render Environment Variables for better security
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "CHANGE-THIS-SECRET-KEY")
 
 # -------------------------
-# DATABASE CONFIG (Render + Local)
+# DATABASE CONFIG
 # -------------------------
-
 DATABASE_URL = os.environ.get("DATABASE_URL")
-
 if DATABASE_URL:
-    # Fix for Render/Heroku postgres URLs which use "postgres://" instead of "postgresql://"
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
@@ -32,13 +27,11 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
 # -------------------------
 # LOGIN MANAGER
 # -------------------------
-
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
@@ -46,10 +39,8 @@ login_manager.init_app(app)
 # -------------------------
 # MODELS
 # -------------------------
-
 class User(UserMixin, db.Model):
     __tablename__ = "users"
-
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(300), nullable=False)
@@ -61,91 +52,129 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # -------------------------
-# INIT DATABASE (Flask 3 SAFE)
+# INIT DATABASE
 # -------------------------
-
 with app.app_context():
     db.create_all()
-
-    # Create default admin if it doesn't exist
     if not User.query.filter_by(username="admin").first():
         admin_pass = generate_password_hash("admin123", method="scrypt")
-        admin = User(
-            username="admin",
-            password=admin_pass,
-            is_admin=True
-        )
+        admin = User(username="admin", password=admin_pass, is_admin=True)
         db.session.add(admin)
         db.session.commit()
         print("✅ Admin user created")
 
 # -------------------------
-# ROUTES
+# AUTH ROUTES
 # -------------------------
-
 @app.route('/')
 def index():
     return redirect(url_for('login'))
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists', 'danger')
-            return redirect(url_for('register'))
-
-        hashed = generate_password_hash(password, method='scrypt')
-        user = User(username=username, password=hashed)
-
-        db.session.add(user)
-        db.session.commit()
-
-        flash('Account created successfully', 'success')
-        return redirect(url_for('login'))
-
-    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         user = User.query.filter_by(username=username).first()
-
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('dashboard'))
-
-        flash('Invalid credentials', 'danger')
-
+        flash('بيانات الدخول غير صحيحة', 'danger')
     return render_template('login.html')
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    return render_template('dashboard.html', user=current_user)
-
-# --- ADDED ROUTE TO FIX RENDER ERROR ---
-@app.route('/admin_dashboard')
-@login_required
-def admin_dashboard():
-    # Only allow access if the user is an admin
-    if not current_user.is_admin:
-        flash("You do not have permission to access the Admin Panel.", "danger")
-        return redirect(url_for('dashboard'))
-    
-    all_users = User.query.all()
-    return render_template('admin_dashboard.html', users=all_users)
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if User.query.filter_by(username=username).first():
+            flash('اسم المستخدم موجود مسبقاً', 'danger')
+            return redirect(url_for('register'))
+        hashed = generate_password_hash(password, method='scrypt')
+        user = User(username=username, password=hashed)
+        db.session.add(user)
+        db.session.commit()
+        flash('تم إنشاء الحساب بنجاح', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+# -------------------------
+# GENERAL ROUTES
+# -------------------------
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', user=current_user)
+
+@app.route('/support')
+@login_required
+def support():
+    return "<h1>الدعم الفني</h1><p>سيتم توفير هذه الصفحة قريباً.</p>"
+
+# -------------------------
+# ADMIN ROUTES (Requested by base.html)
+# -------------------------
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    if not current_user.is_admin: return redirect(url_for('dashboard'))
+    return render_template('admin_dashboard.html', users=User.query.all())
+
+@app.route('/manage_admins')
+@login_required
+def manage_admins():
+    if not current_user.is_admin: return redirect(url_for('dashboard'))
+    return "<h1>إدارة المشرفين</h1>"
+
+@app.route('/admin_profile')
+@login_required
+def admin_profile():
+    if not current_user.is_admin: return redirect(url_for('dashboard'))
+    return "<h1>الملف الشخصي للأدمن</h1>"
+
+# -------------------------
+# STORE ROUTES (Requested by base.html)
+# -------------------------
+@app.route('/pos')
+@login_required
+def pos():
+    return "<h1>نقطة البيع (POS)</h1>"
+
+@app.route('/products')
+@login_required
+def products():
+    return "<h1>المنتجات</h1>"
+
+@app.route('/customers')
+@login_required
+def customers():
+    return "<h1>العملاء</h1>"
+
+@app.route('/expenses')
+@login_required
+def expenses():
+    return "<h1>المصروفات</h1>"
+
+@app.route('/employees')
+@login_required
+def employees():
+    return "<h1>الموظفين</h1>"
+
+@app.route('/invoices')
+@login_required
+def invoices():
+    return "<h1>الفواتير</h1>"
+
+@app.route('/settings')
+@login_required
+def settings():
+    return "<h1>الإعدادات</h1>"
 
 if __name__ == "__main__":
     app.run(debug=True)
