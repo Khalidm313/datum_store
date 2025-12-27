@@ -45,7 +45,6 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(300), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
     shop = db.relationship('Shop', backref='owner', uselist=False)
 
 # -------------------------
@@ -69,13 +68,12 @@ with app.app_context():
         admin = User(username="admin", password=admin_pass, is_admin=True)
         db.session.add(admin)
         db.session.commit()
-        
-        admin_shop = Shop(name="Datum Admin Shop", user_id=admin.id)
+        admin_shop = Shop(name="Datum Admin", user_id=admin.id)
         db.session.add(admin_shop)
         db.session.commit()
 
 # -------------------------
-# AUTH & DASHBOARD
+# AUTH ROUTES
 # -------------------------
 @app.route('/')
 def index():
@@ -90,38 +88,42 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('dashboard'))
-        flash('خطأ في اسم المستخدم أو كلمة المرور', 'danger')
+        flash('خطأ في البيانات', 'danger')
     return render_template('login.html')
 
+# This is the function the error was looking for!
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if User.query.filter_by(username=username).first():
+            flash('المستخدم موجود', 'danger')
+            return redirect(url_for('register'))
+        hashed = generate_password_hash(password, method='scrypt')
+        new_user = User(username=username, password=hashed)
+        db.session.add(new_user)
+        db.session.commit()
+        new_shop = Shop(name=f"متجر {username}", user_id=new_user.id)
+        db.session.add(new_shop)
+        db.session.commit()
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# -------------------------
+# DASHBOARD & STORE ROUTES
+# -------------------------
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Pass empty lists to avoid the JSON chart error you saw earlier
     return render_template('dashboard.html', user=current_user, chart_labels=[], chart_data=[])
 
-# -------------------------
-# ADMIN ROUTES (Matching your files)
-# -------------------------
-@app.route('/admin_dashboard')
-@login_required
-def admin_dashboard():
-    if not current_user.is_admin: return redirect(url_for('dashboard'))
-    return render_template('admin.html', users=User.query.all())
-
-@app.route('/manage_admins')
-@login_required
-def manage_admins():
-    if not current_user.is_admin: return redirect(url_for('dashboard'))
-    return render_template('admin_users.html')
-
-@app.route('/admin_profile')
-@login_required
-def admin_profile():
-    return render_template('admin_profile.html')
-
-# -------------------------
-# STORE ROUTES (Matching your files)
-# -------------------------
 @app.route('/pos')
 @login_required
 def pos(): return render_template('pos.html')
@@ -154,11 +156,25 @@ def settings(): return render_template('settings.html')
 @login_required
 def support(): return render_template('support.html')
 
-@app.route('/logout')
+# -------------------------
+# ADMIN ROUTES
+# -------------------------
+@app.route('/admin_dashboard')
 @login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
+def admin_dashboard():
+    if not current_user.is_admin: return redirect(url_for('dashboard'))
+    return render_template('admin.html', users=User.query.all())
+
+@app.route('/manage_admins')
+@login_required
+def manage_admins():
+    if not current_user.is_admin: return redirect(url_for('dashboard'))
+    return render_template('admin_users.html')
+
+@app.route('/admin_profile')
+@login_required
+def admin_profile():
+    return render_template('admin_profile.html')
 
 if __name__ == "__main__":
     app.run(debug=True)
