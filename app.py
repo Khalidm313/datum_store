@@ -13,7 +13,7 @@ import os
 # APP CONFIG
 # -------------------------
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "CHANGE-THIS-SECRET-KEY")
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "datum-secret-key-2025")
 
 # -------------------------
 # DATABASE CONFIG
@@ -64,20 +64,18 @@ def load_user(user_id):
 # -------------------------
 with app.app_context():
     db.create_all()
-    admin_user = User.query.filter_by(username="admin").first()
-    if not admin_user:
+    if not User.query.filter_by(username="admin").first():
         admin_pass = generate_password_hash("admin123", method="scrypt")
-        admin_user = User(username="admin", password=admin_pass, is_admin=True)
-        db.session.add(admin_user)
+        admin = User(username="admin", password=admin_pass, is_admin=True)
+        db.session.add(admin)
         db.session.commit()
         
-        admin_shop = Shop(name="Datum Store Admin", user_id=admin_user.id)
+        admin_shop = Shop(name="Datum Admin Shop", user_id=admin.id)
         db.session.add(admin_shop)
         db.session.commit()
-        print("✅ Admin user and Shop created")
 
 # -------------------------
-# ROUTES
+# AUTH & DASHBOARD
 # -------------------------
 @app.route('/')
 def index():
@@ -92,87 +90,69 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('dashboard'))
-        flash('بيانات الدخول غير صحيحة', 'danger')
+        flash('خطأ في اسم المستخدم أو كلمة المرور', 'danger')
     return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if User.query.filter_by(username=username).first():
-            flash('اسم المستخدم موجود مسبقاً', 'danger')
-            return redirect(url_for('register'))
-        
-        hashed = generate_password_hash(password, method='scrypt')
-        new_user = User(username=username, password=hashed)
-        db.session.add(new_user)
-        db.session.commit()
-        
-        new_shop = Shop(name=f"متجر {username}", user_id=new_user.id)
-        db.session.add(new_shop)
-        db.session.commit()
-        return redirect(url_for('login'))
-    return render_template('register.html')
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # FIX: Added empty lists for the JavaScript chart in dashboard.html
-    return render_template(
-        'dashboard.html', 
-        user=current_user, 
-        chart_labels=[], 
-        chart_data=[]
-    )
+    # Pass empty lists to avoid the JSON chart error you saw earlier
+    return render_template('dashboard.html', user=current_user, chart_labels=[], chart_data=[])
 
+# -------------------------
+# ADMIN ROUTES (Matching your files)
+# -------------------------
 @app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    return render_template('admin_dashboard.html', users=User.query.all())
+    return render_template('admin.html', users=User.query.all())
 
 @app.route('/manage_admins')
 @login_required
 def manage_admins():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    return "<h1>إدارة المشرفين</h1>"
+    return render_template('admin_users.html')
 
 @app.route('/admin_profile')
 @login_required
-def admin_profile(): return "<h1>ملفي الشخصي</h1>"
+def admin_profile():
+    return render_template('admin_profile.html')
 
+# -------------------------
+# STORE ROUTES (Matching your files)
+# -------------------------
 @app.route('/pos')
 @login_required
-def pos(): return "<h1>نقطة البيع</h1>"
+def pos(): return render_template('pos.html')
 
 @app.route('/products')
 @login_required
-def products(): return "<h1>المنتجات</h1>"
+def products(): return render_template('products.html')
 
 @app.route('/customers')
 @login_required
-def customers(): return "<h1>العملاء</h1>"
+def customers(): return render_template('customers.html')
 
 @app.route('/expenses')
 @login_required
-def expenses(): return "<h1>المصروفات</h1>"
+def expenses(): return render_template('expenses.html')
 
 @app.route('/employees')
 @login_required
-def employees(): return "<h1>الموظفين</h1>"
+def employees(): return render_template('employees.html')
 
 @app.route('/invoices')
 @login_required
-def invoices(): return "<h1>الفواتير</h1>"
+def invoices(): return render_template('invoices.html')
 
 @app.route('/settings')
 @login_required
-def settings(): return "<h1>الإعدادات</h1>"
+def settings(): return render_template('settings.html')
 
 @app.route('/support')
 @login_required
-def support(): return "<h1>الدعم الفني</h1>"
+def support(): return render_template('support.html')
 
 @app.route('/logout')
 @login_required
