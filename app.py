@@ -40,9 +40,6 @@ else:
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-with app.app_context():
-    db.create_all()
-
 
 # ======================================================
 # LOGIN
@@ -117,6 +114,12 @@ class Expense(db.Model):
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
 # ======================================================
+# ✅ CREATE TABLES (FIX — AFTER MODELS)
+# ======================================================
+with app.app_context():
+    db.create_all()
+
+# ======================================================
 # ROUTES
 # ======================================================
 @app.route('/')
@@ -162,7 +165,7 @@ def register():
             db.session.add(user)
             db.session.commit()
             return redirect(url_for('login'))
-        except:
+        except Exception as e:
             db.session.rollback()
             flash('Registration failed', 'error')
     return render_template('register.html')
@@ -212,12 +215,3 @@ def refund_invoice(id):
         db.session.commit()
 
     return redirect(url_for('invoices'))
-
-# ======================================================
-# RUN
-# ======================================================
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run()
-
