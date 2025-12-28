@@ -121,7 +121,7 @@
                 <h3>هوية المتجر</h3>
                 
                 <div class="logo-upload-box">
-                    {% if shop.logo_file %}
+                    {% if shop is defined and shop.logo_file %}
                         <img src="{{ url_for('static', filename='uploads/' + shop.logo_file) }}" class="logo-preview" id="logoPreview">
                     {% else %}
                         <div class="logo-preview" style="display:flex; align-items:center; justify-content:center;">
@@ -314,4 +314,5 @@
         window.dispatchEvent(new Event('themeChanged'));
     }
 </script>
+
 {% endblock %}
