@@ -237,6 +237,36 @@ def settings():
 def support():
     return "الدعم الفني"
 
+
+# ================== INVOICES ==================
+@app.route('/invoices')
+@login_required
+def invoices():
+    return render_template('invoices.html') if os.path.exists('templates/invoices.html') else "صفحة الفواتير"
+
+# ================== OTHER NAV PLACEHOLDERS ==================
+@app.route('/expenses')
+@login_required
+def expenses():
+    return "صفحة المصروفات"
+
+@app.route('/employees')
+@login_required
+def employees():
+    return "صفحة الموظفين"
+
+@app.route('/settings')
+@login_required
+def settings():
+    return "الإعدادات"
+
+@app.route('/support')
+@login_required
+def support():
+    return "الدعم الفني"
+
+
 # ======================================================
 if __name__ == '__main__':
     app.run(debug=True)
+
