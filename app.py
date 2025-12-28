@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -63,6 +63,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     price = db.Column(db.Float, default=0)
+    stock = db.Column(db.Integer, default=0)  # ✅ FIX
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
 class Customer(db.Model):
@@ -98,6 +99,12 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+
+        # ✅ منع تكرار username
+        if User.query.filter_by(username=request.form['username']).first():
+            flash('اسم المستخدم موجود مسبقًا', 'error')
+            return redirect(url_for('register'))
+
         shop = Shop(
             name=request.form['shop_name'],
             subscription_end=datetime.utcnow() + timedelta(days=14)
@@ -112,7 +119,9 @@ def register():
         )
         db.session.add(user)
         db.session.commit()
+
         return redirect(url_for('login'))
+
     return render_template('register.html')
 
 @app.route('/logout')
@@ -133,21 +142,9 @@ def dashboard():
 @login_required
 def pos():
     products = Product.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template("pos.html", products=products)
 
-    products_data = [
-        {
-            "id": p.id,
-            "name": p.name,
-            "price": p.price,
-            "stock": p.stock
-        }
-        for p in products
-    ]
-
-    return render_template("pos.html", products=products_data)
-
-
-@app.route('/products')
+@app.route('/products', methods=['GET'])
 @login_required
 def products():
     products = Product.query.filter_by(shop_id=current_user.shop_id).all()
@@ -169,6 +166,22 @@ def customers():
     customers = Customer.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('customers.html', customers=customers)
 
+# ✅ FIX: customer_details route (كان مفقود)
+@app.route('/customers/<int:id>')
+@login_required
+def customer_details(id):
+    customer = Customer.query.filter_by(
+        id=id,
+        shop_id=current_user.shop_id
+    ).first_or_404()
+
+    invoices = []  # مؤقت حتى تضيف نظام الفواتير
+    return render_template(
+        'customer_details.html',
+        customer=customer,
+        invoices=invoices
+    )
+
 @app.route('/expenses')
 @login_required
 def expenses():
@@ -187,14 +200,8 @@ def invoices():
 @app.route("/settings")
 @login_required
 def settings():
-    shop = Shop.query.get(current_user.shop_id)
-
-    if not shop:
-        abort(404)
-
+    shop = Shop.query.get_or_404(current_user.shop_id)
     return render_template("settings.html", shop=shop)
-
-
 
 @app.route('/support')
 @login_required
@@ -218,6 +225,3 @@ def manage_admins():
 @login_required
 def admin_profile():
     return "Admin Profile"
-
-
-
