@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2>تعديل المنتج: {{ product.name }}</h2>
+    
+    <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+        
+        <div>
+            <label>اسم المنتج</label>
+            <input type="text" name="name" value="{{ product.name }}" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+        </div>
+
+        <div>
+            <label>الرقم الإشاري (Reference No)</label>
+            <input type="text" name="barcode" value="{{ product.barcode }}" placeholder="مثال: REF-2025" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label>سعر الشراء</label>
+                <input type="number" step="0.01" name="buy_price" value="{{ product.buy_price }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+            <div style="flex: 1;">
+                <label>سعر البيع</label>
+                <input type="number" step="0.01" name="sell_price" value="{{ product.sell_price }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label>المخزون</label>
+                <input type="number" name="stock" value="{{ product.stock }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+            <div style="flex: 1;">
+                <label>الضريبة (%)</label>
+                <input type="number" step="0.1" name="tax" value="{{ product.tax }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+        </div>
+
+        <div>
+            <label>التصنيف</label>
+            <select name="category" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <option value="عام" {% if product.category=='عام' %}selected{% endif %}>عام</option>
+                <option value="إلكترونيات" {% if product.category=='إلكترونيات' %}selected{% endif %}>إلكترونيات</option>
+                <option value="ملابس" {% if product.category=='ملابس' %}selected{% endif %}>ملابس</option>
+                <option value="خدمات" {% if product.category=='خدمات' %}selected{% endif %}>خدمات</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn" style="background: var(--primary); color: #fff; border: none; padding: 12px; margin-top: 10px;">حفظ التغييرات</button>
+        <a href="{{ url_for('products') }}" class="btn" style="text-align: center; background: #eee; color: #333; text-decoration: none; padding: 12px;">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

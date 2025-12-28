@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 20px;">البحث عن منتج بالرقم الإشاري</h2>
+    
+    <form method="POST" style="display: flex; gap: 10px; margin-bottom: 30px;">
+        <input type="text" name="reference" placeholder="أدخل الرقم الإشاري هنا..." value="{{ query or '' }}" required 
+               style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1.1rem;">
+        <button type="submit" class="btn" style="background: var(--primary); color: white;">
+            <i class="fas fa-search"></i> بحث
+        </button>
+    </form>
+
+    {% if results %}
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+            <h3 style="margin-top: 0; color: var(--primary);">{{ results.product.name }}</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div><strong>الرقم الإشاري:</strong> {{ results.product.barcode }}</div>
+                <div><strong>التصنيف:</strong> {{ results.product.category }}</div>
+                <div><strong>السعر:</strong> {{ results.product.sell_price }} د.ل</div>
+                <div><strong>المخزون الحالي:</strong> <span style="color: green; font-weight: bold;">{{ results.product.stock }}</span></div>
+                <div><strong>إجمالي المبيعات:</strong> {{ results.total_sold }} قطعة</div>
+            </div>
+        </div>
+
+        <h3 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">سجل حركة المبيعات (الفواتير)</h3>
+        
+        {% if results.invoices %}
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background: #eee;">
+                    <th style="padding: 10px;">رقم الفاتورة</th>
+                    <th style="padding: 10px;">التاريخ</th>
+                    <th style="padding: 10px;">العميل</th>
+                    <th style="padding: 10px;">إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in results.invoices %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-family: monospace;">#{{ inv.id }}</td>
+                    <td style="padding: 10px;">{{ inv.date.strftime('%Y-%m-%d') }}</td>
+                    <td style="padding: 10px;">{{ inv.customer_name or 'عميل نقدي' }}</td>
+                    <td style="padding: 10px;">
+                        <a href="{{ url_for('print_invoice', id=inv.id) }}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                            <i class="fas fa-eye"></i> عرض الفاتورة
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="color: #666; font-style: italic;">لم يتم بيع هذا المنتج في أي فاتورة حتى الآن.</p>
+        {% endif %}
+
+    {% elif query %}
+        <div style="text-align: center; color: #ef4444; padding: 20px;">
+            <i class="fas fa-times-circle"></i> لم يتم العثور على أي منتج يحمل الرقم الإشاري "{{ query }}"
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .search-container { max-width: 800px; margin: 0 auto; }
+    .search-box { display: flex; gap: 10px; margin-bottom: 30px; }
+    .search-input { flex: 1; padding: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 1.1rem; }
+    .search-btn { padding: 15px 30px; background: #3b82f6; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    
+    .product-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 25px; border-right: 5px solid #3b82f6; }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #eee; padding-bottom: 10px; }
+    .stat-label { color: #666; font-weight: bold; }
+    .stat-value { font-weight: 800; color: #333; }
+
+    .invoices-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .invoices-table th { background: #f8fafc; padding: 15px; text-align: right; color: #64748b; font-weight: bold; }
+    .invoices-table td { padding: 15px; border-bottom: 1px solid #eee; }
+</style>
+
+<div class="search-container">
+    <h2 style="margin-bottom: 20px;">البحث عن منتج بالرقم الإشاري</h2>
+    
+    <form method="POST" class="search-box">
+        <input type="text" name="reference" class="search-input" placeholder="أدخل الرقم الإشاري (الباركود) هنا..." value="{{ query or '' }}" required autofocus>
+        <button type="submit" class="search-btn"><i class="fas fa-search"></i> بحث</button>
+    </form>
+
+    {% if results %}
+        <div class="product-card animate__animated animate__fadeInUp">
+            <h3 style="margin-top: 0; color: #3b82f6;">{{ results.product.name }}</h3>
+            <div class="stat-row">
+                <span class="stat-label">الرقم الإشاري:</span>
+                <span class="stat-value">{{ results.product.barcode }}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">التصنيف:</span>
+                <span class="stat-value">{{ results.product.category }}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">الكمية الحالية بالمخزون:</span>
+                <span class="stat-value" style="color: #10b981;">{{ results.product.stock }} قطعة</span>
+            </div>
+            <div class="stat-row" style="border-bottom: none;">
+                <span class="stat-label">إجمالي المبيعات (تاريخياً):</span>
+                <span class="stat-value" style="color: #f59e0b;">{{ results.total_sold }} قطعة</span>
+            </div>
+        </div>
+
+        <h4 style="margin-bottom: 15px;">الفواتير التي تحتوي على هذا المنتج:</h4>
+        {% if results.invoices %}
+            <table class="invoices-table animate__animated animate__fadeInUp animate__delay-1s">
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>التاريخ</th>
+                        <th>العميل</th>
+                        <th>عرض</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in results.invoices %}
+                    <tr>
+                        <td style="font-family: monospace; font-weight: bold;">#{{ inv.id }}</td>
+                        <td>{{ inv.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ inv.customer_name or 'عميل نقدي' }}</td>
+                        <td>
+                            <a href="{{ url_for('print_invoice', id=inv.id) }}" target="_blank" style="color: #3b82f6;">
+                                <i class="fas fa-external-link-alt"></i> فتح
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; color: #999; padding: 20px;">لم يتم بيع هذا المنتج في أي فاتورة بعد.</div>
+        {% endif %}
+
+    {% elif query %}
+        <div style="text-align: center; padding: 40px; background: #fff; border-radius: 10px; color: #ef4444;">
+            <i class="fas fa-exclamation-circle fa-2x"></i><br><br>
+            لا يوجد منتج بهذا الرقم الإشاري.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

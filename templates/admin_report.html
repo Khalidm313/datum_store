@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير المتاجر - {{ date.strftime('%Y-%m-%d') }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; padding: 40px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+        h1 { margin: 0; color: #333; }
+        .meta { color: #666; margin-top: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: right; }
+        th { background-color: #f4f4f4; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+            table { width: 100%; }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px;">طباعة / حفظ كـ PDF</button>
+    </div>
+
+    <div class="header">
+        <h1>تقرير المتاجر المسجلة</h1>
+        <div class="meta">تاريخ التقرير: {{ date.strftime('%Y-%m-%d %H:%M') }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="5%">#</th>
+                <th width="25%">اسم المتجر</th>
+                <th width="20%">اسم المالك</th>
+                <th width="20%">رقم الهاتف</th>
+                <th width="15%">نهاية الاشتراك</th>
+                <th width="15%">الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for shop in shops %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ shop.name }}</td>
+                <td>{{ shop.owner }}</td>
+                <td dir="ltr" style="text-align: right;">{{ shop.phone }}</td>
+                <td>{{ shop.sub_end }}</td>
+                <td>{{ shop.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

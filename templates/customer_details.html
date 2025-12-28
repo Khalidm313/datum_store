@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    /* نفس التنسيقات السابقة */
+    .row-print-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px;
+        border-radius: 6px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        transition: 0.2s;
+        text-decoration: none;
+    }
+    .row-print-btn:hover {
+        background: #10b981;
+        color: #fff;
+        transform: scale(1.1);
+    }
+</style>
+
+<div class="card">
+    
+    <div class="page-header" style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <h2 style="margin: 0; color: var(--accent);">كشف حساب: {{ customer.name }}</h2>
+            <div style="color: var(--text-muted); margin-top: 5px;">
+                <i class="fas fa-phone fa-xs"></i> {{ customer.phone or 'غير مسجل' }}
+            </div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+            <div style="text-align: left; background: var(--bg-body); padding: 12px 25px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size: 0.85rem; color: var(--text-muted);">الرصيد المستحق</div>
+                <div style="font-size: 1.6rem; font-weight: 900; color: var(--danger); line-height: 1.2;">{{ customer.balance }} <small style="font-size:0.9rem;">{{ current_user.shop.currency }}</small></div>
+            </div>
+        </div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="border-bottom: 2px solid var(--border-color);">
+                <th style="padding: 12px; text-align: right;">رقم الفاتورة</th>
+                <th style="padding: 12px; text-align: right;">التاريخ</th>
+                <th style="padding: 12px; text-align: right;">الحالة</th>
+                <th style="padding: 12px; text-align: right;">المبلغ ({{ current_user.shop.currency }})</th>
+                <th style="padding: 12px; text-align: right;">المنتجات</th>
+                <th style="padding: 12px; text-align: center; width: 80px;">طباعة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px; color: var(--accent); font-family: monospace; font-weight: bold;">#{{ inv.id }}</td>
+                <td style="padding: 12px;">{{ inv.date.strftime('%Y-%m-%d') }}</td>
+                <td style="padding: 12px;">
+                    {% if inv.status == 'paid' %} 
+                        <span style="color: var(--success); font-weight: bold; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> مدفوعة</span>
+                    {% elif inv.status == 'refunded' %} 
+                        <span style="color: var(--danger); font-weight: bold; font-size: 0.9rem;"><i class="fas fa-undo"></i> مسترجعة</span>
+                    {% else %} 
+                        <span style="color: var(--warning); font-weight: bold; font-size: 0.9rem;"><i class="fas fa-clock"></i> آجل</span> 
+                    {% endif %}
+                </td>
+                <td style="padding: 12px; font-weight: 800;">{{ inv.total_amount }}</td>
+                <td style="padding: 12px; color: var(--text-muted); font-size: 0.85rem; max-width: 250px;">
+                    {% for item in inv.items %} 
+                        {{ item.product.name }} ({{ item.quantity }}){% if not loop.last %}، {% endif %}
+                    {% endfor %}
+                </td>
+                
+                <td style="padding: 12px; text-align: center;">
+                    <a href="{{ url_for('print_invoice', id=inv.id) }}" target="_blank" class="row-print-btn" title="طباعة الفاتورة">
+                        <i class="fas fa-print"></i>
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">لا توجد حركات مسجلة لهذا العميل.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 30px;">
+        <a href="{{ url_for('customers') }}" class="btn" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);">
+            <i class="fas fa-arrow-right"></i> عودة لقائمة العملاء
+        </a>
+    </div>
+</div>
+{% endblock %}

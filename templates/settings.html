@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* --- تنسيقات الصفحة الاحترافية --- */
+    .settings-layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    /* القائمة الجانبية */
+    .settings-sidebar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 15px;
+        height: fit-content;
+        position: sticky;
+        top: 20px;
+    }
+
+    .nav-btn {
+        width: 100%; text-align: right; padding: 15px 20px;
+        background: transparent; border: none; border-radius: 12px;
+        color: var(--text-muted); font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; gap: 15px; transition: 0.2s;
+        margin-bottom: 5px;
+    }
+    .nav-btn:hover { background: var(--bg-body); color: var(--text-main); }
+    .nav-btn.active { background: var(--primary-soft); color: var(--primary); }
+    .nav-btn i { width: 20px; text-align: center; }
+
+    /* بطاقات المحتوى */
+    .settings-content { display: none; animation: fadeIn 0.4s ease; }
+    .settings-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card-panel {
+        background: var(--bg-card); border: 1px solid var(--border-color);
+        border-radius: 20px; padding: 30px; margin-bottom: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+    }
+
+    h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.1rem; color: var(--primary); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+
+    /* --- تحسين حقول الإدخال --- */
+    .input-group { margin-bottom: 20px; }
+    .form-label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-main); font-size: 0.9rem; }
+    .form-control {
+        width: 100%; padding: 12px 15px; border-radius: 10px;
+        border: 2px solid var(--border-color); background: var(--bg-body);
+        color: var(--text-main); font-size: 0.95rem; transition: 0.3s;
+        box-sizing: border-box; /* مهم جداً لمنع الخروج عن الإطار */
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); outline: none; }
+
+    /* --- تحسين منطقة رفع الشعار (Logo) --- */
+    .logo-upload-box {
+        display: flex; align-items: center; gap: 20px;
+        padding: 20px; background: var(--bg-body); border-radius: 15px;
+        border: 2px dashed var(--border-color); transition: 0.3s;
+    }
+    .logo-upload-box:hover { border-color: var(--primary); background: var(--primary-soft); }
+    
+    .logo-preview {
+        width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+        border: 2px solid var(--border-color); background: white;
+    }
+    
+    .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; }
+    .btn-upload {
+        border: 1px solid var(--border-color); color: var(--text-main);
+        background-color: var(--bg-card); padding: 8px 20px;
+        border-radius: 8px; font-weight: bold; cursor: pointer;
+    }
+    .upload-btn-wrapper input[type=file] {
+        font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer;
+    }
+
+    /* --- خيارات الألوان --- */
+    .colors-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+    .color-option {
+        width: 35px; height: 35px; border-radius: 50%; cursor: pointer;
+        border: 3px solid transparent; transition: 0.2s; position: relative;
+    }
+    .color-option.active { transform: scale(1.2); border-color: var(--text-main); }
+
+    /* متجاوب */
+    @media (max-width: 900px) {
+        .settings-layout { grid-template-columns: 1fr; }
+        .settings-sidebar { display: flex; overflow-x: auto; padding: 10px; }
+        .nav-btn { width: auto; white-space: nowrap; margin: 0; border-radius: 20px; }
+    }
+</style>
+
+<div class="page-header" style="margin-bottom: 20px;">
+    <h1 class="page-title"><i class="fas fa-sliders-h"></i> إعدادات المتجر</h1>
+</div>
+
+<form method="POST" enctype="multipart/form-data" class="settings-layout">
+    
+    <div class="settings-sidebar">
+        <div class="nav-btn active" onclick="switchTab('general', this)"><i class="fas fa-store"></i> عام</div>
+        <div class="nav-btn" onclick="switchTab('invoice', this)"><i class="fas fa-file-invoice"></i> الفواتير</div>
+        <div class="nav-btn" onclick="switchTab('appearance', this)"><i class="fas fa-paint-brush"></i> المظهر</div>
+        <div class="nav-btn" onclick="switchTab('security', this)"><i class="fas fa-lock"></i> الأمان</div>
+        
+        <button type="submit" class="btn" style="width: 100%; margin-top: 20px; background: var(--primary); color: white; padding: 12px;">
+            <i class="fas fa-save"></i> حفظ الكل
+        </button>
+    </div>
+
+    <div style="flex: 1;">
+        
+        <div id="general" class="settings-content active">
+            <div class="card-panel">
+                <h3>هوية المتجر</h3>
+                
+                <div class="logo-upload-box">
+                    {% if shop.logo_file %}
+                        <img src="{{ url_for('static', filename='uploads/' + shop.logo_file) }}" class="logo-preview" id="logoPreview">
+                    {% else %}
+                        <div class="logo-preview" style="display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-image fa-2x" style="color:var(--text-muted)"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <div>
+                        <div style="font-weight: bold; margin-bottom: 5px;">شعار المتجر</div>
+                        <div class="upload-btn-wrapper">
+                            <button class="btn-upload" type="button">اختر صورة...</button>
+                            <input type="file" name="logo" onchange="previewImage(this)">
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">يفضل PNG شفافة (مربع)</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <div class="input-group">
+                        <label class="form-label">اسم المتجر</label>
+                        <input type="text" name="name" value="{{ shop.name }}" class="form-control" required>
+                    </div>
+                    <div class="input-group">
+                        <label class="form-label">رقم الهاتف</label>
+                        <input type="text" name="phone" value="{{ shop.phone or '' }}" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label class="form-label">العنوان</label>
+                    <input type="text" name="address" value="{{ shop.address or '' }}" class="form-control">
+                </div>
+                
+                <div class="input-group">
+                    <label class="form-label">عملة النظام</label>
+                    <select name="currency" class="form-control">
+                        <option value="LYD" {% if shop.currency == 'LYD' %}selected{% endif %}>دينار ليبي (LYD)</option>
+                        <option value="USD" {% if shop.currency == 'USD' %}selected{% endif %}>دولار أمريكي (USD)</option>
+                        <option value="EUR" {% if shop.currency == 'EUR' %}selected{% endif %}>يورو (EUR)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="invoice" class="settings-content">
+            <div class="card-panel">
+                <h3>إعدادات الطباعة</h3>
+                
+                <div class="input-group">
+                    <label class="form-label">نوع الورق الافتراضي</label>
+                    <div style="display: flex; gap: 15px;">
+                        <label style="flex: 1; cursor: pointer; background: var(--bg-body); padding: 15px; border-radius: 10px; border: 2px solid var(--border-color); display: flex; align-items: center; gap: 10px;">
+                            <input type="radio" name="print_size" value="80mm" {% if shop.print_size == '80mm' %}checked{% endif %}>
+                            <i class="fas fa-receipt fa-lg"></i>
+                            <div>
+                                <div style="font-weight: bold;">إيصال حراري</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">80mm (كاشير)</div>
+                            </div>
+                        </label>
+                        
+                        <label style="flex: 1; cursor: pointer; background: var(--bg-body); padding: 15px; border-radius: 10px; border: 2px solid var(--border-color); display: flex; align-items: center; gap: 10px;">
+                            <input type="radio" name="print_size" value="A4" {% if shop.print_size == 'A4' %}checked{% endif %}>
+                            <i class="fas fa-file-alt fa-lg"></i>
+                            <div>
+                                <div style="font-weight: bold;">فاتورة رسمية</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">ورق A4 قياسي</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="form-label">الرقم الضريبي</label>
+                    <input type="text" name="tax_number" value="{{ shop.tax_number or '' }}" class="form-control">
+                </div>
+
+                <div class="input-group">
+                    <label class="form-label">تذييل الفاتورة (الفوتر)</label>
+                    <input type="text" name="footer_msg" value="{{ shop.footer_msg or '' }}" class="form-control" placeholder="مثال: شكراً لزيارتكم">
+                </div>
+
+                <div class="input-group">
+                    <label class="form-label">سياسة الاسترجاع</label>
+                    <textarea name="policy_text" class="form-control" rows="3">{{ shop.policy_text or '' }}</textarea>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px; padding: 15px; background: var(--bg-body); border-radius: 10px;">
+                    <input type="checkbox" name="auto_print" {% if shop.auto_print %}checked{% endif %} style="width: 20px; height: 20px;">
+                    <label style="font-weight: bold;">تفعيل الطباعة التلقائية بعد البيع</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="appearance" class="settings-content">
+            <div class="card-panel">
+                <h3>تخصيص الواجهة</h3>
+                
+                <div class="input-group">
+                    <label class="form-label">لون النظام الرئيسي</label>
+                    <div class="colors-grid">
+                        <div class="color-option" style="background: #2563eb;" onclick="setColor('#2563eb', this)"></div>
+                        <div class="color-option" style="background: #ef4444;" onclick="setColor('#ef4444', this)"></div>
+                        <div class="color-option" style="background: #10b981;" onclick="setColor('#10b981', this)"></div>
+                        <div class="color-option" style="background: #f59e0b;" onclick="setColor('#f59e0b', this)"></div>
+                        <div class="color-option" style="background: #8b5cf6;" onclick="setColor('#8b5cf6', this)"></div>
+                        <div class="color-option" style="background: #ec4899;" onclick="setColor('#ec4899', this)"></div>
+                        <div style="position: relative; width: 35px; height: 35px; border-radius: 50%; overflow: hidden;">
+                            <input type="color" id="customPicker" style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; cursor: pointer;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="form-label">نمط الإضاءة</label>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <button type="button" onclick="setTheme('light')" class="btn" style="background: #f1f5f9; color: #333; border: 1px solid #ddd;">
+                            <i class="fas fa-sun"></i> نهاري
+                        </button>
+                        <button type="button" onclick="setTheme('dark')" class="btn" style="background: #1e293b; color: #fff;">
+                            <i class="fas fa-moon"></i> ليلي
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="security" class="settings-content">
+            <div class="card-panel">
+                <h3>تغيير كلمة المرور</h3>
+                <div class="input-group">
+                    <label class="form-label">كلمة المرور الجديدة</label>
+                    <input type="password" name="new_password" class="form-control" placeholder="اتركها فارغة إذا لم ترد التغيير">
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<script>
+    // 1. التنقل بين التبويبات
+    function switchTab(id, btn) {
+        document.querySelectorAll('.settings-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // 2. معاينة الشعار قبل الرفع
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('logoPreview');
+                if(img) {
+                    img.src = e.target.result;
+                } else {
+                    // إذا لم تكن هناك صورة سابقة
+                    const box = document.querySelector('.logo-upload-box');
+                    // إعادة رسم الصندوق ليعرض الصورة
+                    // (للتبسيط سنكتفي بتحديث src إذا وجد، أو يمكنك تحسينها بالجافاسكريبت)
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // 3. تغيير اللون
+    function setColor(color, btn) {
+        document.documentElement.style.setProperty('--primary', color);
+        localStorage.setItem('theme_color_hex', color);
+        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+    }
+    
+    document.getElementById('customPicker').addEventListener('input', (e) => {
+        setColor(e.target.value, null);
+    });
+
+    // 4. تغيير الثيم
+    function setTheme(mode) {
+        if(mode === 'dark') {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+        }
+        window.dispatchEvent(new Event('themeChanged'));
+    }
+</script>
+{% endblock %}
