@@ -184,10 +184,12 @@ def employees():
 def invoices():
     return render_template('invoices.html')
 
-@app.route('/settings')
+@app.route("/settings")
 @login_required
 def settings():
-    return render_template('settings.html')
+    shop = Shop.query.get(current_user.shop_id)
+    return render_template("settings.html", shop=shop)
+
 
 @app.route('/support')
 @login_required
@@ -211,4 +213,5 @@ def manage_admins():
 @login_required
 def admin_profile():
     return "Admin Profile"
+
 
