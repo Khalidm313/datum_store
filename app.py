@@ -53,7 +53,6 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
-
     shop = db.relationship('Shop')
 
 class Product(db.Model):
@@ -154,6 +153,12 @@ def dashboard():
 
     return render_template('dashboard.html', sales=sales)
 
+# ---------------- POS (تمت الإضافة ✅) ----------------
+@app.route('/pos')
+@login_required
+def pos():
+    return render_template('pos.html')
+
 # ---------------- PRODUCTS ----------------
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
@@ -176,7 +181,7 @@ def products():
     products = Product.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('products.html', products=products)
 
-# -------- EDIT PRODUCT (حل الخطأ) --------
+# ---------------- EDIT PRODUCT ----------------
 @app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_product(id):
@@ -216,7 +221,7 @@ def customers():
     customers = Customer.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('customers.html', customers=customers)
 
-# -------- CUSTOMER DETAILS --------
+# ---------------- CUSTOMER DETAILS ----------------
 @app.route('/customers/<int:id>')
 @login_required
 def customer_details(id):
@@ -230,13 +235,9 @@ def customer_details(id):
         shop_id=current_user.shop_id
     ).order_by(Invoice.date.desc()).all()
 
-    return render_template(
-        'customer_details.html',
-        customer=customer,
-        invoices=invoices
-    )
+    return render_template('customer_details.html', customer=customer, invoices=invoices)
 
-# -------- DELETE CUSTOMER --------
+# ---------------- DELETE CUSTOMER ----------------
 @app.route('/customers/delete/<int:id>')
 @login_required
 def delete_customer(id):
@@ -249,7 +250,7 @@ def delete_customer(id):
     db.session.commit()
     return redirect(url_for('customers'))
 
-# -------- PRINT INVOICE --------
+# ---------------- PRINT INVOICE ----------------
 @app.route('/invoice/print/<int:id>')
 @login_required
 def print_invoice(id):
