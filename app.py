@@ -44,21 +44,17 @@ def load_user(user_id):
 # ======================================================
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100))
+    currency = db.Column(db.String(10), default='USD')
     subscription_end = db.Column(db.DateTime)
-
-    # ⭐ هذا السطر هو الحل للمشكلة
-    users = db.relationship('User', backref='shop', lazy=True)
-    products = db.relationship('Product', backref='shop', lazy=True)
-
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
+    shop = db.relationship('Shop')
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -68,20 +64,34 @@ class Product(db.Model):
     buy_price = db.Column(db.Float, default=0)
     sell_price = db.Column(db.Float, default=0)
     stock = db.Column(db.Integer, default=0)
+    tax = db.Column(db.Float, default=0)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
+class Customer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    phone = db.Column(db.String(50))
+    balance = db.Column(db.Float, default=0)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, default=datetime.utcnow)
-    total_amount = db.Column(db.Float)
+    status = db.Column(db.String(20), default='unpaid')
+    total_amount = db.Column(db.Float, default=0)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
+    customer = db.relationship('Customer', backref='invoices')
 
-class Expense(db.Model):
+class InvoiceItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Float)
-    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    quantity = db.Column(db.Integer, default=1)
+
+    invoice = db.relationship('Invoice', backref='items')
+    product = db.relationship('Product')
 
 # ======================================================
 # CREATE TABLES
@@ -94,19 +104,17 @@ with app.app_context():
 # ======================================================
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return redirect(url_for('dashboard')) if current_user.is_authenticated else redirect(url_for('login'))
 
 # ---------------- LOGIN ----------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form.get('username')).first()
-        if user and check_password_hash(user.password, request.form.get('password')):
+        user = User.query.filter_by(username=request.form['username']).first()
+        if user and check_password_hash(user.password, request.form['password']):
             login_user(user)
             return redirect(url_for('dashboard'))
-        flash('بيانات الدخول غير صحيحة', 'error')
+        flash('بيانات الدخول غير صحيحة')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -119,27 +127,21 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        try:
-            shop = Shop(
-                name=request.form.get('shop_name'),
-                subscription_end=datetime.utcnow() + timedelta(days=14)
-            )
-            db.session.add(shop)
-            db.session.flush()
+        shop = Shop(
+            name=request.form['shop_name'],
+            subscription_end=datetime.utcnow() + timedelta(days=14)
+        )
+        db.session.add(shop)
+        db.session.flush()
 
-            user = User(
-                username=request.form.get('username'),
-                password=generate_password_hash(request.form.get('password')),
-                shop_id=shop.id
-            )
-            db.session.add(user)
-            db.session.commit()
-
-            flash('تم إنشاء الحساب بنجاح', 'success')
-            return redirect(url_for('login'))
-        except Exception:
-            db.session.rollback()
-            flash('حدث خطأ أثناء التسجيل', 'error')
+        user = User(
+            username=request.form['username'],
+            password=generate_password_hash(request.form['password']),
+            shop_id=shop.id
+        )
+        db.session.add(user)
+        db.session.commit()
+        return redirect(url_for('login'))
 
     return render_template('register.html')
 
@@ -150,40 +152,7 @@ def dashboard():
     sales = db.session.query(db.func.sum(Invoice.total_amount))\
         .filter_by(shop_id=current_user.shop_id).scalar() or 0
 
-    expenses = db.session.query(db.func.sum(Expense.amount))\
-        .filter_by(shop_id=current_user.shop_id).scalar() or 0
-
-    return render_template(
-        'dashboard.html',
-        todays_sales=sales,
-        expenses=expenses,
-        net_profit=sales - expenses
-    )
-
-# ---------------- POS ----------------
-@app.route('/pos')
-@login_required
-def pos():
-    products = Product.query.filter_by(
-        shop_id=current_user.shop_id
-    ).all()
-
-    products_data = [
-        {
-            "id": p.id,
-            "name": p.name,
-            "barcode": p.barcode,
-            "price": p.sell_price,
-            "stock": p.stock
-        }
-        for p in products
-    ]
-
-    return render_template(
-        'pos.html',
-        products=products_data
-    )
-
+    return render_template('dashboard.html', sales=sales)
 
 # ---------------- PRODUCTS ----------------
 @app.route('/products', methods=['GET', 'POST'])
@@ -197,45 +166,102 @@ def products():
             buy_price=request.form.get('buy_price') or 0,
             sell_price=request.form.get('sell_price') or 0,
             stock=request.form.get('stock') or 0,
+            tax=request.form.get('tax') or 0,
             shop_id=current_user.shop_id
         )
         db.session.add(product)
         db.session.commit()
-        flash('تم إضافة المنتج بنجاح', 'success')
         return redirect(url_for('products'))
 
     products = Product.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('products.html', products=products)
 
-# ---------------- INVOICES ----------------
-@app.route('/invoices')
+# -------- EDIT PRODUCT (حل الخطأ) --------
+@app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
-def invoices():
-    return render_template('invoices.html')
+def edit_product(id):
+    product = Product.query.filter_by(
+        id=id,
+        shop_id=current_user.shop_id
+    ).first_or_404()
 
-# ---------------- PLACEHOLDER ROUTES ----------------
-@app.route('/customers')
+    if request.method == 'POST':
+        product.name = request.form['name']
+        product.barcode = request.form.get('barcode')
+        product.category = request.form.get('category')
+        product.buy_price = request.form.get('buy_price') or 0
+        product.sell_price = request.form.get('sell_price') or 0
+        product.stock = request.form.get('stock') or 0
+        product.tax = request.form.get('tax') or 0
+
+        db.session.commit()
+        return redirect(url_for('products'))
+
+    return render_template('edit_product.html', product=product)
+
+# ---------------- CUSTOMERS ----------------
+@app.route('/customers', methods=['GET', 'POST'])
 @login_required
 def customers():
-    return "Customers page"
+    if request.method == 'POST':
+        customer = Customer(
+            name=request.form['name'],
+            phone=request.form.get('phone'),
+            shop_id=current_user.shop_id
+        )
+        db.session.add(customer)
+        db.session.commit()
+        return redirect(url_for('customers'))
 
-@app.route('/expenses')
+    customers = Customer.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('customers.html', customers=customers)
+
+# -------- CUSTOMER DETAILS --------
+@app.route('/customers/<int:id>')
 @login_required
-def expenses():
-    return "Expenses page"
+def customer_details(id):
+    customer = Customer.query.filter_by(
+        id=id,
+        shop_id=current_user.shop_id
+    ).first_or_404()
 
-@app.route('/employees')
+    invoices = Invoice.query.filter_by(
+        customer_id=customer.id,
+        shop_id=current_user.shop_id
+    ).order_by(Invoice.date.desc()).all()
+
+    return render_template(
+        'customer_details.html',
+        customer=customer,
+        invoices=invoices
+    )
+
+# -------- DELETE CUSTOMER --------
+@app.route('/customers/delete/<int:id>')
 @login_required
-def employees():
-    return "Employees page"
+def delete_customer(id):
+    customer = Customer.query.filter_by(
+        id=id,
+        shop_id=current_user.shop_id
+    ).first_or_404()
 
-@app.route('/settings')
+    db.session.delete(customer)
+    db.session.commit()
+    return redirect(url_for('customers'))
+
+# -------- PRINT INVOICE --------
+@app.route('/invoice/print/<int:id>')
 @login_required
-def settings():
-    return "Settings page"
+def print_invoice(id):
+    invoice = Invoice.query.filter_by(
+        id=id,
+        shop_id=current_user.shop_id
+    ).first_or_404()
 
-@app.route('/support')
-@login_required
-def support():
-    return "Support page"
+    return render_template('print_invoice.html', invoice=invoice)
 
+# ======================================================
+# RUN
+# ======================================================
+if __name__ == '__main__':
+    app.run(debug=True)
