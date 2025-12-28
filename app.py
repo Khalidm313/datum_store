@@ -129,10 +129,23 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/pos')
+@app.route("/pos")
 @login_required
 def pos():
-    return render_template('pos.html')
+    products = Product.query.filter_by(shop_id=current_user.shop_id).all()
+
+    products_data = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "price": p.price,
+            "stock": p.stock
+        }
+        for p in products
+    ]
+
+    return render_template("pos.html", products=products_data)
+
 
 @app.route('/products')
 @login_required
@@ -198,3 +211,4 @@ def manage_admins():
 @login_required
 def admin_profile():
     return "Admin Profile"
+
