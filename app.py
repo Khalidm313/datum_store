@@ -194,6 +194,12 @@ def dashboard():
     )
 
 # ---------------- INVOICES ----------------
+@app.route('/pos')
+@login_required
+def pos():
+    return render_template('pos.html')
+------------------------------
+
 @app.route('/invoices')
 @login_required
 def invoices():
@@ -215,3 +221,4 @@ def refund_invoice(id):
         db.session.commit()
 
     return redirect(url_for('invoices'))
+
