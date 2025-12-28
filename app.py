@@ -223,4 +223,13 @@ def refund_invoice(id):
 
     return redirect(url_for('invoices'))
 
+    
+    @app.route('/products')
+@login_required
+def products():
+    products = Product.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('products.html', products=products)
+
+
+
 
