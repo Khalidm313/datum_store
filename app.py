@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'datum-store-secret-key-2025')
 
-# --- إعدادات قاعدة البيانات (متوافق مع Render) ---
+# --- إعدادات قاعدة البيانات ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -69,7 +69,7 @@ class Expense(db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'), nullable=False)
 
-# تهيئة قاعدة البيانات تلقائياً
+# تهيئة قاعدة البيانات
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
@@ -85,7 +85,7 @@ with app.app_context():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- المسارات الأساسية (Routes) ---
+# --- المسارات (Routes) ---
 
 @app.route('/')
 def index():
@@ -104,25 +104,6 @@ def login():
             return redirect(url_for('admin_dashboard' if user.is_admin else 'dashboard'))
         flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'error')
     return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        shop_name = request.form.get('shop_name')
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if Shop.query.filter_by(name=shop_name).first():
-            flash('اسم المتجر مستخدم بالفعل', 'error')
-            return redirect(url_for('register'))
-        new_shop = Shop(name=shop_name, subscription_end=datetime.utcnow() + timedelta(days=14))
-        db.session.add(new_shop)
-        db.session.flush()
-        new_user = User(username=username, password=generate_password_hash(password, method='scrypt'), shop_id=new_shop.id)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('تم إنشاء المتجر بنجاح (فترة تجريبية 14 يوم)', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html')
 
 @app.route('/dashboard')
 @login_required
@@ -152,11 +133,34 @@ def employees():
     emps = User.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('employees.html', employees=emps)
 
+# إصلاح خطأ حذف الموظف (تمت إضافة الدالة المفقودة)
+@app.route('/employee/delete/<int:id>')
+@login_required
+def delete_employee(id):
+    emp = User.query.get_or_404(id)
+    if emp.shop_id == current_user.shop_id and emp.id != current_user.id:
+        db.session.delete(emp)
+        db.session.commit()
+        flash('تم حذف الموظف', 'success')
+    return redirect(url_for('employees'))
+
 @app.route('/invoices')
 @login_required
 def invoices():
     invs = Invoice.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('invoices.html', invoices=invs)
+
+# إصلاح خطأ صفحة الإعدادات (تم إرسال المتغير shop)
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    shop = Shop.query.get(current_user.shop_id)
+    if request.method == 'POST':
+        shop.name = request.form.get('name')
+        shop.phone = request.form.get('phone')
+        db.session.commit()
+        flash('تم حفظ الإعدادات', 'success')
+    return render_template('settings.html', shop=shop)
 
 @app.route('/admin_dashboard')
 @login_required
@@ -170,7 +174,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# المسارات الإضافية (تأكد من وجود ملفات الـ HTML الخاصة بها)
 @app.route('/pos')
 @login_required
 def pos(): return render_template('pos.html')
@@ -178,10 +181,6 @@ def pos(): return render_template('pos.html')
 @app.route('/products')
 @login_required
 def products(): return render_template('products.html', products=[])
-
-@app.route('/settings')
-@login_required
-def settings(): return render_template('settings.html')
 
 @app.route('/support')
 @login_required
