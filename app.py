@@ -32,14 +32,23 @@ if DATABASE_URL:
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 else:
     # إذا لم يوجد رابط خارجي (مثل وقت التشغيل المحلي)، استخدم SQLite تلقائياً
-    # تأكد من استخدام المسار المطلق للملف لضمان استقراره
     basedir = os.path.abspath(os.path.dirname(__file__))
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'database.db')
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 # -------------------------
 # MODELS (الجداول)
 # -------------------------
+
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# دالة التحقق من امتداد الملف
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -563,19 +572,13 @@ def support():
 def account_statement():
     return render_template('account_statement.html', transactions=[])
 
-# --- ضع هذا الكود الجديد مكان القديم ---
-# ==========================================
-# تحديثات الأدمن (الخصوصية + PDF)
-# ==========================================
-
+# --- الأدمن (Admin Dashboard) ---
 @app.route('/admin')
 @login_required
 def admin_dashboard():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
     
     shops = Shop.query.all()
-    
-    # الإحصائيات (تم إزالة إحصائية المنتجات)
     total_shops = len(shops)
     active_shops = sum(1 for s in shops if s.is_active and s.subscription_end and s.subscription_end > datetime.now())
     total_revenue = db.session.query(db.func.sum(Subscription.amount)).scalar() or 0
@@ -583,8 +586,6 @@ def admin_dashboard():
     shop_list = []
     for s in shops:
         owner = User.query.filter_by(shop_id=s.id, role='owner').first()
-        
-        # تحديد الحالة
         status = "expired"
         if s.subscription_end and s.subscription_end > datetime.now():
             status = "active"
@@ -592,7 +593,6 @@ def admin_dashboard():
             status = "stopped"
             
         days_left = (s.subscription_end - datetime.now()).days if status == "active" else 0
-        
         shop_list.append({
             'shop': s, 
             'owner_name': owner.username if owner else 'غير محدد',
@@ -612,14 +612,11 @@ def admin_dashboard():
 @login_required
 def admin_export_pdf():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    
     shops = Shop.query.all()
     shop_data = []
-    
     for s in shops:
         owner = User.query.filter_by(shop_id=s.id, role='owner').first()
         status = 'نشط' if s.is_active and s.subscription_end > datetime.now() else 'متوقف/منتهي'
-        
         shop_data.append({
             'name': s.name,
             'owner': owner.username if owner else '-',
@@ -627,11 +624,7 @@ def admin_export_pdf():
             'sub_end': s.subscription_end.strftime('%Y-%m-%d') if s.subscription_end else '-',
             'status': status
         })
-        
     return render_template('admin_report.html', shops=shop_data, date=datetime.now())
-# ==========================================
-# مسارات الأدمن (Admin Routes) - أضفها في نهاية app.py
-# ==========================================
 
 @app.route('/admin/toggle_status/<int:id>')
 @login_required
@@ -648,9 +641,7 @@ def toggle_shop_status(id):
 def delete_shop(id):
     if not current_user.is_admin: return redirect(url_for('dashboard'))
     shop = Shop.query.get_or_404(id)
-    # حذف المتجر وكل ما يتعلق به (سيتم الحذف بالتتابع إذا كانت العلاقات مضبوطة، أو يدوياً)
     try:
-        # حذف البيانات المرتبطة يدوياً للأمان
         InvoiceItem.query.filter(InvoiceItem.product.has(shop_id=shop.id)).delete(synchronize_session=False)
         Invoice.query.filter_by(shop_id=shop.id).delete()
         Product.query.filter_by(shop_id=shop.id).delete()
@@ -658,39 +649,29 @@ def delete_shop(id):
         User.query.filter_by(shop_id=shop.id).delete()
         Expense.query.filter_by(shop_id=shop.id).delete()
         Subscription.query.filter_by(shop_id=shop.id).delete()
-        
         db.session.delete(shop)
         db.session.commit()
         flash('تم حذف المتجر وبياناته بنجاح', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'حدث خطأ أثناء الحذف: {str(e)}', 'error')
-        
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/renew_subscription', methods=['POST'])
 @login_required
 def renew_subscription():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    
     shop_id = request.form.get('shop_id')
     plan_name = request.form.get('plan_name')
     price = request.form.get('price')
-    
     shop = Shop.query.get_or_404(shop_id)
-    
-    # تحديد عدد الأيام بناءً على الخطة
     days = 30
     if 'Year' in plan_name: days = 365
     elif '6 Months' in plan_name: days = 180
-    
-    # تمديد التاريخ
     if shop.subscription_end and shop.subscription_end > datetime.now():
         shop.subscription_end += timedelta(days=days)
     else:
         shop.subscription_end = datetime.now() + timedelta(days=days)
-        
-    # تسجيل الاشتراك في السجل
     new_sub = Subscription(
         shop_id=shop.id,
         plan_name=plan_name,
@@ -698,11 +679,9 @@ def renew_subscription():
         duration_days=days,
         end_date=shop.subscription_end
     )
-    
-    shop.is_active = True # إعادة التفعيل تلقائياً عند التجديد
+    shop.is_active = True
     db.session.add(new_sub)
     db.session.commit()
-    
     flash(f'تم تجديد الاشتراك لـ {shop.name} بنجاح', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -712,40 +691,32 @@ def admin_edit_shop(id):
     if not current_user.is_admin: return redirect(url_for('dashboard'))
     shop = Shop.query.get_or_404(id)
     owner = User.query.filter_by(shop_id=shop.id, role='owner').first()
-    
     if request.method == 'POST':
         shop.name = request.form.get('shop_name')
-        
         new_password = request.form.get('new_password')
         if new_password and owner:
             owner.password = generate_password_hash(new_password, method='scrypt')
             flash('تم تحديث كلمة مرور المالك', 'success')
-            
         db.session.commit()
         flash('تم حفظ التغييرات', 'success')
         return redirect(url_for('admin_dashboard'))
-        
     return render_template('admin_edit_shop.html', shop=shop, owner=owner)
 
 @app.route('/admin/admins', methods=['GET', 'POST'])
 @login_required
 def manage_admins():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         if User.query.filter_by(username=username).first():
             flash('اسم المستخدم موجود مسبقاً', 'error')
         else:
             hashed = generate_password_hash(password, method='scrypt')
-            # المسؤول لا يتبع أي متجر (shop_id=None)
             new_admin = User(username=username, password=hashed, role='admin', is_admin=True)
             db.session.add(new_admin)
             db.session.commit()
             flash('تم إضافة المشرف بنجاح', 'success')
-            
     admins = User.query.filter_by(is_admin=True).all()
     return render_template('admin_users.html', admins=admins)
 
@@ -754,51 +725,41 @@ def manage_admins():
 def delete_admin(id):
     if not current_user.is_admin: return redirect(url_for('dashboard'))
     user = User.query.get_or_404(id)
-    
     if user.id == current_user.id:
         flash('لا يمكنك حذف حسابك الحالي!', 'error')
     else:
         db.session.delete(user)
         db.session.commit()
         flash('تم حذف المشرف', 'success')
-        
     return redirect(url_for('manage_admins'))
 
 @app.route('/admin/profile', methods=['GET', 'POST'])
 @login_required
 def admin_profile():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    
     if request.method == 'POST':
         current_user.username = request.form.get('username')
         new_password = request.form.get('password')
-        
         if new_password:
             current_user.password = generate_password_hash(new_password, method='scrypt')
-            
         try:
             db.session.commit()
             flash('تم تحديث البيانات', 'success')
         except:
             flash('اسم المستخدم مستخدم بالفعل', 'error')
-            
     return render_template('admin_profile.html')
 
-# --- أضف هذه الدالة الجديدة (لم تكن موجودة سابقاً) ---
 @app.route('/admin/export_csv')
 @login_required
 def admin_export_csv():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    
     si = StringIO()
     cw = csv.writer(si)
     cw.writerow(['Shop ID', 'Shop Name', 'Phone', 'Address', 'Tax Number', 'Subscription End', 'Status'])
-    
     shops = Shop.query.all()
     for s in shops:
         status = 'Active' if s.is_active else 'Stopped'
         cw.writerow([s.id, s.name, s.phone, s.address, s.tax_number, s.subscription_end, status])
-        
     output = make_response(si.getvalue())
     output.headers["Content-Disposition"] = "attachment; filename=shops_export.csv"
     output.headers["Content-type"] = "text/csv; charset=utf-8-sig"
@@ -807,5 +768,4 @@ def admin_export_csv():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-
     app.run(debug=True)
