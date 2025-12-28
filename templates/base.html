@@ -28,14 +28,12 @@
         }
 
         body {
-            margin: 0; padding: 0;
-            font-family: 'Tajawal', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
+            margin: 0; padding: 0; font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-body); color: var(--text-main);
             display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* --- MOBILE TOP BAR --- */
+        /* --- الهيدر للهاتف --- */
         .mobile-header {
             display: none; position: fixed; top: 0; left: 0; right: 0;
             height: 60px; background: var(--bg-sidebar);
@@ -43,13 +41,13 @@
             z-index: 1000; align-items: center; justify-content: space-between; padding: 0 20px;
         }
 
-        /* --- SIDEBAR --- */
+        /* --- القائمة الجانبية المحدثة --- */
         .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--bg-sidebar);
+            width: var(--sidebar-width); background-color: var(--bg-sidebar);
             border-left: 1px solid var(--border-color);
             display: flex; flex-direction: column; padding: 20px; flex-shrink: 0;
             transition: transform 0.3s ease; z-index: 1001;
+            overflow-y: auto; /* يسمح بالتمرير إذا زادت العناصر */
         }
 
         .nav-link {
@@ -62,42 +60,43 @@
 
         .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
 
-        /* --- RESPONSIVE LOGIC --- */
+        /* زر تبديل الإضاءة */
+        .theme-btn {
+            background: var(--bg-body); border: 1px solid var(--border-color);
+            color: var(--text-main); padding: 10px; border-radius: 12px;
+            cursor: pointer; margin: 10px 0; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+
         @media (max-width: 992px) {
             .mobile-header { display: flex; }
             .sidebar {
                 position: fixed; top: 0; bottom: 0; right: 0;
-                transform: translateX(100%); /* Hidden on mobile by default */
+                transform: translateX(100%);
             }
-            .sidebar.open { transform: translateX(0); } /* Shown when toggled */
+            .sidebar.open { transform: translateX(0); }
             .main-content { padding: 80px 15px 20px 15px; width: 100%; }
-            
             .sidebar-overlay {
-                display: none; position: fixed; inset: 0;
-                background: rgba(0,0,0,0.5); z-index: 1000;
+                display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;
             }
             .sidebar-overlay.active { display: block; }
         }
-
-        .logo { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
     </style>
 </head>
 <body>
-
     <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 
     <header class="mobile-header">
-        <button onclick="toggleSidebar()" style="background: none; border: none; color: var(--text-main); font-size: 1.5rem;">
+        <button onclick="toggleSidebar()" style="background:none; border:none; color:var(--text-main); font-size:1.5rem;">
             <i class="fas fa-bars"></i>
         </button>
-        <div style="font-weight: 800;">Datum Store</div>
-        <div style="width: 30px;"></div>
+        <div style="font-weight:800;">Datum Store</div>
+        <div style="width:30px;"></div>
     </header>
 
     {% if current_user.is_authenticated %}
     <nav class="sidebar" id="sidebar">
-        <div class="logo">
-            <i class="fas fa-cube" style="color: var(--primary);"></i> Datum Store
+        <div class="logo" style="font-size:1.5rem; font-weight:800; margin-bottom:30px;">
+            <i class="fas fa-cube" style="color:var(--primary);"></i> Datum Store
         </div>
 
         {% if current_user.is_admin %}
@@ -107,13 +106,19 @@
             <a href="{{ url_for('dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'dashboard' else '' }}"><i class="fas fa-chart-pie"></i> لوحة التحكم</a>
             <a href="{{ url_for('pos') }}" class="nav-link {{ 'active' if request.endpoint == 'pos' else '' }}"><i class="fas fa-cash-register"></i> نقطة البيع</a>
             <a href="{{ url_for('products') }}" class="nav-link {{ 'active' if 'product' in request.endpoint else '' }}"><i class="fas fa-box"></i> المنتجات</a>
+            <a href="{{ url_for('customers') }}" class="nav-link {{ 'active' if 'customer' in request.endpoint else '' }}"><i class="fas fa-users"></i> العملاء</a>
+            <a href="{{ url_for('employees') }}" class="nav-link {{ 'active' if 'employee' in request.endpoint else '' }}"><i class="fas fa-user-tie"></i> الموظفين</a>
             <a href="{{ url_for('invoices') }}" class="nav-link {{ 'active' if 'invoice' in request.endpoint else '' }}"><i class="fas fa-file-invoice"></i> الفواتير</a>
             <a href="{{ url_for('settings') }}" class="nav-link {{ 'active' if request.endpoint == 'settings' else '' }}"><i class="fas fa-cog"></i> الإعدادات</a>
         {% endif %}
 
-        <a href="{{ url_for('logout') }}" class="nav-link" style="margin-top: auto; color: #ef4444; background: rgba(239, 68, 68, 0.1);">
-            <i class="fas fa-sign-out-alt"></i> خروج
-        </a>
+        <div style="margin-top: auto;">
+            <button class="theme-btn" onclick="toggleThemeMode()" style="width:100%;">
+                <i class="fas fa-moon" id="themeIcon"></i> <span>تبديل الوضع</span>
+            </button>
+            <a href="{{ url_for('support') }}" class="nav-link"><i class="fas fa-headset"></i> الدعم الفني</a>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color:#ef4444;"><i class="fas fa-sign-out-alt"></i> خروج</a>
+        </div>
     </nav>
     {% endif %}
 
@@ -126,6 +131,14 @@
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('active');
         }
+        function toggleThemeMode() {
+            document.documentElement.classList.toggle('light-mode');
+            const isLight = document.documentElement.classList.contains('light-mode');
+            localStorage.setItem('theme_mode', isLight ? 'light' : 'dark');
+            document.getElementById('themeIcon').className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        // استعادة الوضع المفضل
+        if(localStorage.getItem('theme_mode') === 'light') document.documentElement.classList.add('light-mode');
     </script>
 </body>
 </html>
