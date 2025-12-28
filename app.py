@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'datum-store-secret-key-2025')
 
-# إعدادات قاعدة البيانات (متوافق مع Render)
+# إعدادات قاعدة البيانات
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -20,7 +20,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --- الموديلات (نفس الموديلات السابقة مع تحسينات طفيفة) ---
+# --- الموديلات ---
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -86,19 +86,36 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # --- المسارات (Routes) ---
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard' if current_user.is_admin else 'dashboard'))
     return redirect(url_for('login'))
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('admin_dashboard' if user.is_admin else 'dashboard'))
+        flash('بيانات الدخول غير صحيحة', 'error')
+    return render_template('login.html')
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    today = datetime.today().date()
-    shop_id = current_user.shop_id
-    # منطق حساب المبيعات والمصاريف...
+    # الحسابات الافتراضية لمنع الخطأ
     return render_template('dashboard.html', todays_sales=0, month_sales=0, month_expenses=0, net_profit=0, chart_labels=[], chart_data=[])
+
+@app.route('/invoices')
+@login_required
+def invoices():
+    invs = Invoice.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('invoices.html', invoices=invs)
 
 @app.route('/customers', methods=['GET', 'POST'])
 @login_required
@@ -107,9 +124,9 @@ def customers():
         new_cust = Customer(name=request.form.get('name'), phone=request.form.get('phone'), shop_id=current_user.shop_id)
         db.session.add(new_cust)
         db.session.commit()
-        flash('تم إضافة العميل', 'success')
-    all_customers = Customer.query.filter_by(shop_id=current_user.shop_id).all()
-    return render_template('customers.html', customers=all_customers)
+        flash('تم إضافة العميل بنجاح', 'success')
+    custs = Customer.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('customers.html', customers=custs)
 
 @app.route('/employees', methods=['GET', 'POST'])
 @login_required
@@ -119,16 +136,38 @@ def employees():
         new_emp = User(username=request.form.get('username'), password=hashed, role='worker', shop_id=current_user.shop_id)
         db.session.add(new_emp)
         db.session.commit()
-        flash('تم إضافة الموظف', 'success')
-    all_employees = User.query.filter_by(shop_id=current_user.shop_id).all()
-    return render_template('employees.html', employees=all_employees)
+        flash('تم إضافة الموظف بنجاح', 'success')
+    emps = User.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('employees.html', employees=emps)
+
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    if not current_user.is_admin: return redirect(url_for('dashboard'))
+    shops = Shop.query.all()
+    return render_template('admin.html', shops=shops)
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# بقية المسارات (pos, products, settings, support) يجب التأكد من وجود ملفاتها
+@app.route('/pos')
+@login_required
+def pos(): return render_template('pos.html')
+
+@app.route('/products')
+@login_required
+def products(): return render_template('products.html', products=[])
+
+@app.route('/settings')
+@login_required
+def settings(): return render_template('settings.html')
 
 @app.route('/support')
 @login_required
-def support():
-    return render_template('support.html')
-
-# أضف باقي المسارات (products, pos, invoices, settings, login, logout, register) كما في ملفك الأصلي
+def support(): return render_template('support.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
