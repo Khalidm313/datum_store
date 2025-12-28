@@ -47,12 +47,18 @@ class Shop(db.Model):
     name = db.Column(db.String(100), nullable=False)
     subscription_end = db.Column(db.DateTime)
 
+    # ⭐ هذا السطر هو الحل للمشكلة
+    users = db.relationship('User', backref='shop', lazy=True)
+    products = db.relationship('Product', backref='shop', lazy=True)
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,11 +70,13 @@ class Product(db.Model):
     stock = db.Column(db.Integer, default=0)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
+
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     total_amount = db.Column(db.Float)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -86,7 +94,9 @@ with app.app_context():
 # ======================================================
 @app.route('/')
 def index():
-    return redirect(url_for('dashboard')) if current_user.is_authenticated else redirect(url_for('login'))
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
 # ---------------- LOGIN ----------------
 @app.route('/login', methods=['GET', 'POST'])
@@ -109,21 +119,27 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        shop = Shop(
-            name=request.form.get('shop_name'),
-            subscription_end=datetime.utcnow() + timedelta(days=14)
-        )
-        db.session.add(shop)
-        db.session.flush()
+        try:
+            shop = Shop(
+                name=request.form.get('shop_name'),
+                subscription_end=datetime.utcnow() + timedelta(days=14)
+            )
+            db.session.add(shop)
+            db.session.flush()
 
-        user = User(
-            username=request.form.get('username'),
-            password=generate_password_hash(request.form.get('password')),
-            shop_id=shop.id
-        )
-        db.session.add(user)
-        db.session.commit()
-        return redirect(url_for('login'))
+            user = User(
+                username=request.form.get('username'),
+                password=generate_password_hash(request.form.get('password')),
+                shop_id=shop.id
+            )
+            db.session.add(user)
+            db.session.commit()
+
+            flash('تم إنشاء الحساب بنجاح', 'success')
+            return redirect(url_for('login'))
+        except Exception:
+            db.session.rollback()
+            flash('حدث خطأ أثناء التسجيل', 'error')
 
     return render_template('register.html')
 
@@ -178,23 +194,28 @@ def products():
 def invoices():
     return render_template('invoices.html')
 
-# ---------------- PLACEHOLDER ROUTES (لمنع 500) ----------------
+# ---------------- PLACEHOLDER ROUTES ----------------
 @app.route('/customers')
 @login_required
-def customers(): return "Customers page"
+def customers():
+    return "Customers page"
 
 @app.route('/expenses')
 @login_required
-def expenses(): return "Expenses page"
+def expenses():
+    return "Expenses page"
 
 @app.route('/employees')
 @login_required
-def employees(): return "Employees page"
+def employees():
+    return "Employees page"
 
 @app.route('/settings')
 @login_required
-def settings(): return "Settings page"
+def settings():
+    return "Settings page"
 
 @app.route('/support')
 @login_required
-def support(): return "Support page"
+def support():
+    return "Support page"
