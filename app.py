@@ -19,19 +19,24 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- إعدادات قاعدة البيانات ---
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:kH0911534871(:@localhost/store_db'
+# -------------------------
+# DATABASE CONFIGURATION (Fixed for Render)
+# -------------------------
+# سحب الرابط من إعدادات ريندر
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    # ريندر يعطي الرابط يبدأ بـ postgres:// ويجب تحويله لـ postgresql:// ليعمل مع SQLAlchemy 2.0
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+else:
+    # إذا لم يوجد رابط خارجي (مثل وقت التشغيل المحلي)، استخدم SQLite تلقائياً
+    # تأكد من استخدام المسار المطلق للملف لضمان استقراره
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'database.db')
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-# دالة التحقق من امتداد الملف
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 # -------------------------
 # MODELS (الجداول)
 # -------------------------
@@ -802,4 +807,5 @@ def admin_export_csv():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+
     app.run(debug=True)
