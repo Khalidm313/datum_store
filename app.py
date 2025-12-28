@@ -8,10 +8,11 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'datum-master-key-2025')
 
-# إعدادات قاعدة البيانات لـ Render
+# --- Database Configuration (Fixed for Render) ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -19,7 +20,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --- الموديلات الكاملة ---
+# --- Models ---
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -59,12 +60,12 @@ class Invoice(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'), nullable=False)
 
-# تهيئة قاعدة البيانات
+# --- Database Initialization ---
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
         admin_pw = generate_password_hash('admin123', method='scrypt')
-        admin_shop = Shop(name="الإدارة", subscription_end=datetime.utcnow() + timedelta(days=3650))
+        admin_shop = Shop(name="Management", subscription_end=datetime.utcnow() + timedelta(days=3650))
         db.session.add(admin_shop)
         db.session.commit()
         admin = User(username='admin', password=admin_pw, is_admin=True, shop_id=admin_shop.id)
@@ -75,7 +76,7 @@ with app.app_context():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- المسارات (Routes) ---
+# --- Auth Routes ---
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -85,13 +86,41 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form.get('username')).first()
-        if user and check_password_hash(user.password, request.form.get('password')):
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('admin_dashboard' if user.is_admin else 'dashboard'))
-        flash('خطأ في البيانات', 'error')
+        flash('Invalid username or password', 'error')
     return render_template('login.html')
 
+# ADDED: Register route to fix the BuildError
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        shop_name = request.form.get('shop_name')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if Shop.query.filter_by(name=shop_name).first():
+            flash('Shop name already exists', 'error')
+            return redirect(url_for('register'))
+        new_shop = Shop(name=shop_name, subscription_end=datetime.utcnow() + timedelta(days=14))
+        db.session.add(new_shop)
+        db.session.flush()
+        new_user = User(username=username, password=generate_password_hash(password, method='scrypt'), shop_id=new_shop.id)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Store created successfully (14-day trial)', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# --- Main Shop Routes ---
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -107,9 +136,33 @@ def products():
                         shop_id=current_user.shop_id)
         db.session.add(new_p)
         db.session.commit()
-        flash('تمت إضافة المنتج بنجاح', 'success')
+        flash('Product added successfully', 'success')
     prods = Product.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('products.html', products=prods)
+
+@app.route('/customers')
+@login_required
+def customers():
+    custs = Customer.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('customers.html', customers=custs)
+
+@app.route('/employees')
+@login_required
+def employees():
+    emps = User.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('employees.html', employees=emps)
+
+@app.route('/invoices')
+@login_required
+def invoices():
+    invs = Invoice.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('invoices.html', invoices=invs)
+
+@app.route('/pos')
+@login_required
+def pos():
+    prods = Product.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('pos.html', products=prods)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -118,36 +171,21 @@ def settings():
     if request.method == 'POST':
         shop.name = request.form.get('name')
         db.session.commit()
-        flash('تم الحفظ', 'success')
+        flash('Settings saved', 'success')
     return render_template('settings.html', shop=shop)
 
-@app.route('/logout')
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-# روابط إضافية لمنع الخطأ
-@app.route('/customers')
+@app.route('/support')
 @login_required
-def customers(): return render_template('customers.html', customers=Customer.query.filter_by(shop_id=current_user.shop_id).all())
+def support():
+    return render_template('support.html')
 
-@app.route('/employees')
-@login_required
-def employees(): return render_template('employees.html', employees=User.query.filter_by(shop_id=current_user.shop_id).all())
-
-@app.route('/invoices')
-@login_required
-def invoices(): return render_template('invoices.html', invoices=[])
-
-@app.route('/pos')
-@login_required
-def pos(): return render_template('pos.html', products=Product.query.filter_by(shop_id=current_user.shop_id).all())
-
+# --- Admin Dashboard ---
 @app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
     if not current_user.is_admin: return redirect(url_for('dashboard'))
-    return render_template('admin.html', shops=Shop.query.all())
+    shops = Shop.query.all()
+    return render_template('admin.html', shops=shops)
 
 if __name__ == '__main__':
     app.run(debug=True)
