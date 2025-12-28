@@ -1,63 +1,48 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">إدارة المخزون</h1>
-    <button class="btn" onclick="document.getElementById('addForm').style.display = document.getElementById('addForm').style.display === 'none' ? 'block' : 'none'">
-        <i class="fas fa-plus"></i> إضافة منتج
-    </button>
+<style>
+    .table-card {
+        background: var(--bg-sidebar);
+        border-radius: 24px;
+        border: 1px solid var(--border-color);
+        padding: 20px;
+        overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th { padding: 15px; text-align: right; background: rgba(255,255,255,0.02); color: var(--text-muted); }
+    td { padding: 15px; border-top: 1px solid var(--border-color); }
+    .btn-add { background: var(--primary); color: white; padding: 12px 25px; border-radius: 12px; text-decoration: none; font-weight: bold; }
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+    <h1>إدارة المخزون</h1>
+    <a href="#" class="btn-add">+ إضافة منتج</a>
 </div>
 
-<div class="card" id="addForm" style="display: none;">
-    <h3 style="margin-top: 0; margin-bottom: 20px;">بيانات المنتج الجديد</h3>
-    <form method="POST">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-            <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">اسم المنتج</label><input type="text" name="name" class="form-control" required></div>
-            <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">الباركود</label><input type="text" name="barcode" class="form-control"></div>
-            <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">القسم</label><input type="text" name="category" class="form-control"></div>
-            <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">الكمية</label><input type="number" name="stock" class="form-control" required></div>
-            <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">سعر الشراء</label><input type="number" step="0.01" name="buy_price" class="form-control" required></div>
-            <div><label style="display:block; margin-bottom:5px; color:var(--text-muted);">سعر البيع</label><input type="number" step="0.01" name="sell_price" class="form-control" required></div>
-        </div>
-        <button type="submit" class="btn" style="width: 100%; background: var(--success);">حفظ المنتج</button>
-    </form>
-</div>
-
-<div class="card">
+<div class="table-card">
     <table>
         <thead>
             <tr>
                 <th>#</th>
                 <th>المنتج</th>
                 <th>الباركود</th>
-                <th>القسم</th>
                 <th>سعر البيع</th>
                 <th>المخزون</th>
                 <th>إجراءات</th>
             </tr>
         </thead>
         <tbody>
-            {% for p in products %}
+            {% for prod in products %}
             <tr>
                 <td>{{ loop.index }}</td>
-                <td style="font-weight: bold;">{{ p.name }}</td>
-                <td style="font-family: monospace; color: var(--text-muted);">{{ p.barcode or '-' }}</td>
-                <td><span style="background: var(--bg-body); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem;">{{ p.category or 'عام' }}</span></td>
-                <td style="color: var(--primary); font-weight: bold;">{{ p.sell_price }}</td>
-                <td>
-                    {% if p.stock < 5 %}
-                        <span style="background: rgba(239,68,68,0.1); color: var(--danger); padding: 4px 10px; border-radius: 6px; font-weight: bold;">{{ p.stock }}</span>
-                    {% else %}
-                        <span style="background: rgba(16,185,129,0.1); color: var(--success); padding: 4px 10px; border-radius: 6px; font-weight: bold;">{{ p.stock }}</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{{ url_for('edit_product', id=p.id) }}" style="color: var(--warning); margin-left: 10px;"><i class="fas fa-edit"></i></a>
-                    <a href="{{ url_for('delete_product', id=p.id) }}" style="color: var(--danger);" onclick="return confirm('حذف؟')"><i class="fas fa-trash"></i></a>
-                </td>
+                <td>{{ prod.name }}</td>
+                <td>{{ prod.barcode }}</td>
+                <td>{{ prod.sell_price }}</td>
+                <td>{{ prod.stock }}</td>
+                <td><button style="color: var(--primary); background:none; border:none; cursor:pointer;">تعديل</button></td>
             </tr>
             {% else %}
-            <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">لا توجد منتجات</td></tr>
+            <tr><td colspan="6" style="text-align:center; padding: 50px;">لا توجد منتجات حالياً</td></tr>
             {% endfor %}
         </tbody>
     </table>
