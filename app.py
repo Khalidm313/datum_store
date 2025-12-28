@@ -80,7 +80,6 @@ class Invoice(db.Model):
     total_amount = db.Column(db.Float, default=0)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
-
     customer = db.relationship('Customer', backref='invoices')
 
 class InvoiceItem(db.Model):
@@ -88,8 +87,6 @@ class InvoiceItem(db.Model):
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     quantity = db.Column(db.Integer, default=1)
-
-    invoice = db.relationship('Invoice', backref='items')
     product = db.relationship('Product')
 
 # ======================================================
@@ -141,7 +138,6 @@ def register():
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
-
     return render_template('register.html')
 
 # ---------------- DASHBOARD ----------------
@@ -150,10 +146,9 @@ def register():
 def dashboard():
     sales = db.session.query(db.func.sum(Invoice.total_amount))\
         .filter_by(shop_id=current_user.shop_id).scalar() or 0
-
     return render_template('dashboard.html', sales=sales)
 
-# ---------------- POS (تمت الإضافة ✅) ----------------
+# ---------------- POS ----------------
 @app.route('/pos')
 @login_required
 def pos():
@@ -181,15 +176,10 @@ def products():
     products = Product.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('products.html', products=products)
 
-# ---------------- EDIT PRODUCT ----------------
 @app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_product(id):
-    product = Product.query.filter_by(
-        id=id,
-        shop_id=current_user.shop_id
-    ).first_or_404()
-
+    product = Product.query.filter_by(id=id, shop_id=current_user.shop_id).first_or_404()
     if request.method == 'POST':
         product.name = request.form['name']
         product.barcode = request.form.get('barcode')
@@ -198,10 +188,8 @@ def edit_product(id):
         product.sell_price = request.form.get('sell_price') or 0
         product.stock = request.form.get('stock') or 0
         product.tax = request.form.get('tax') or 0
-
         db.session.commit()
         return redirect(url_for('products'))
-
     return render_template('edit_product.html', product=product)
 
 # ---------------- CUSTOMERS ----------------
@@ -221,48 +209,34 @@ def customers():
     customers = Customer.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('customers.html', customers=customers)
 
-# ---------------- CUSTOMER DETAILS ----------------
 @app.route('/customers/<int:id>')
 @login_required
 def customer_details(id):
-    customer = Customer.query.filter_by(
-        id=id,
-        shop_id=current_user.shop_id
-    ).first_or_404()
-
-    invoices = Invoice.query.filter_by(
-        customer_id=customer.id,
-        shop_id=current_user.shop_id
-    ).order_by(Invoice.date.desc()).all()
-
+    customer = Customer.query.filter_by(id=id, shop_id=current_user.shop_id).first_or_404()
+    invoices = Invoice.query.filter_by(customer_id=id, shop_id=current_user.shop_id).all()
     return render_template('customer_details.html', customer=customer, invoices=invoices)
 
-# ---------------- DELETE CUSTOMER ----------------
-@app.route('/customers/delete/<int:id>')
+# ---------------- PLACEHOLDER ROUTES (مهم جداً) ----------------
+@app.route('/expenses')
 @login_required
-def delete_customer(id):
-    customer = Customer.query.filter_by(
-        id=id,
-        shop_id=current_user.shop_id
-    ).first_or_404()
+def expenses():
+    return render_template('expenses.html') if os.path.exists('templates/expenses.html') else "صفحة المصروفات"
 
-    db.session.delete(customer)
-    db.session.commit()
-    return redirect(url_for('customers'))
-
-# ---------------- PRINT INVOICE ----------------
-@app.route('/invoice/print/<int:id>')
+@app.route('/employees')
 @login_required
-def print_invoice(id):
-    invoice = Invoice.query.filter_by(
-        id=id,
-        shop_id=current_user.shop_id
-    ).first_or_404()
+def employees():
+    return "صفحة الموظفين"
 
-    return render_template('print_invoice.html', invoice=invoice)
+@app.route('/settings')
+@login_required
+def settings():
+    return "الإعدادات"
 
-# ======================================================
-# RUN
+@app.route('/support')
+@login_required
+def support():
+    return "الدعم الفني"
+
 # ======================================================
 if __name__ == '__main__':
     app.run(debug=True)
