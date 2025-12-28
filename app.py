@@ -164,7 +164,26 @@ def dashboard():
 @app.route('/pos')
 @login_required
 def pos():
-    return render_template('pos.html')
+    products = Product.query.filter_by(
+        shop_id=current_user.shop_id
+    ).all()
+
+    products_data = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "barcode": p.barcode,
+            "price": p.sell_price,
+            "stock": p.stock
+        }
+        for p in products
+    ]
+
+    return render_template(
+        'pos.html',
+        products=products_data
+    )
+
 
 # ---------------- PRODUCTS ----------------
 @app.route('/products', methods=['GET', 'POST'])
@@ -219,3 +238,4 @@ def settings():
 @login_required
 def support():
     return "Support page"
+
