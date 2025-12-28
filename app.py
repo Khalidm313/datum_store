@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'datum-store-secret-key-2025')
 
-# إعدادات قاعدة البيانات
+# --- إعدادات قاعدة البيانات (متوافق مع Render) ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -20,7 +20,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --- الموديلات ---
+# --- الموديلات (Models) ---
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -69,12 +69,12 @@ class Expense(db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'), nullable=False)
 
-# تهيئة قاعدة البيانات
+# تهيئة قاعدة البيانات تلقائياً
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
         hashed = generate_password_hash('admin123', method='scrypt')
-        admin_shop = Shop(name="الإدارة", subscription_end=datetime.utcnow() + timedelta(days=3650))
+        admin_shop = Shop(name="الإدارة المركزية", subscription_end=datetime.utcnow() + timedelta(days=3650))
         db.session.add(admin_shop)
         db.session.commit()
         admin = User(username='admin', password=hashed, role='admin', is_admin=True, shop_id=admin_shop.id)
@@ -85,7 +85,7 @@ with app.app_context():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- المسارات (Routes) ---
+# --- المسارات الأساسية (Routes) ---
 
 @app.route('/')
 def index():
@@ -102,20 +102,32 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('admin_dashboard' if user.is_admin else 'dashboard'))
-        flash('بيانات الدخول غير صحيحة', 'error')
+        flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'error')
     return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        shop_name = request.form.get('shop_name')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if Shop.query.filter_by(name=shop_name).first():
+            flash('اسم المتجر مستخدم بالفعل', 'error')
+            return redirect(url_for('register'))
+        new_shop = Shop(name=shop_name, subscription_end=datetime.utcnow() + timedelta(days=14))
+        db.session.add(new_shop)
+        db.session.flush()
+        new_user = User(username=username, password=generate_password_hash(password, method='scrypt'), shop_id=new_shop.id)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('تم إنشاء المتجر بنجاح (فترة تجريبية 14 يوم)', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # الحسابات الافتراضية لمنع الخطأ
     return render_template('dashboard.html', todays_sales=0, month_sales=0, month_expenses=0, net_profit=0, chart_labels=[], chart_data=[])
-
-@app.route('/invoices')
-@login_required
-def invoices():
-    invs = Invoice.query.filter_by(shop_id=current_user.shop_id).all()
-    return render_template('invoices.html', invoices=invs)
 
 @app.route('/customers', methods=['GET', 'POST'])
 @login_required
@@ -140,6 +152,12 @@ def employees():
     emps = User.query.filter_by(shop_id=current_user.shop_id).all()
     return render_template('employees.html', employees=emps)
 
+@app.route('/invoices')
+@login_required
+def invoices():
+    invs = Invoice.query.filter_by(shop_id=current_user.shop_id).all()
+    return render_template('invoices.html', invoices=invs)
+
 @app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
@@ -152,7 +170,7 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# بقية المسارات (pos, products, settings, support) يجب التأكد من وجود ملفاتها
+# المسارات الإضافية (تأكد من وجود ملفات الـ HTML الخاصة بها)
 @app.route('/pos')
 @login_required
 def pos(): return render_template('pos.html')
