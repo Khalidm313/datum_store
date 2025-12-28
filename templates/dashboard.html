@@ -2,55 +2,68 @@
 
 {% block content %}
 <style>
-    /* بنر الترحيب الفاخر */
+    /* Premium Banner - Mobile Friendly */
     .premium-banner {
-        background: url('https://www.transparenttextures.com/patterns/stardust.png'), 
-                    linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        padding: 50px; border-radius: 24px; border: 1px solid var(--border-color);
-        margin-bottom: 35px; position: relative; overflow: hidden;
-    }
-
-    .premium-banner::after {
-        content: ''; position: absolute; top: -20%; right: -10%;
-        width: 400px; height: 400px; background: var(--primary);
-        filter: blur(120px); opacity: 0.1; z-index: 0;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        padding: 40px; border-radius: 24px; margin-bottom: 25px;
     }
 
     .shop-title-large {
-        font-size: 4rem; font-weight: 900; text-transform: uppercase;
-        background: linear-gradient(to bottom, #ffffff 0%, #64748b 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        margin: 10px 0; letter-spacing: -2px; line-height: 1;
+        font-size: clamp(2rem, 8vw, 4rem); /* Responsive Font Size */
+        font-weight: 900; color: white; margin: 10px 0;
     }
 
-    .welcome-text { color: var(--primary); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; }
-
-    /* بطاقات الإحصائيات */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 35px; }
+    /* STAT GRID - THE CRITICAL PART FOR MOBILE */
+    .stat-grid { 
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); /* 4 columns on PC */
+        gap: 20px; 
+        margin-bottom: 30px; 
+    }
     
+    /* Responsive Chart Container */
+    .chart-card {
+        background: var(--bg-sidebar); 
+        padding: 20px; 
+        border-radius: 24px; 
+        border: 1px solid var(--border-color);
+        height: 400px;
+    }
+
+    /* MOBILE ADJUSTMENTS */
+    @media (max-width: 992px) {
+        .stat-grid { 
+            grid-template-columns: repeat(2, 1fr); /* 2 per row on tablets */
+        }
+        .premium-banner { padding: 30px 20px; }
+    }
+
+    @media (max-width: 576px) {
+        .stat-grid { 
+            grid-template-columns: 1fr; /* 1 per row on small phones */
+        }
+        .chart-card { height: 300px; }
+    }
+
     .stat-card-pro {
-        background: var(--bg-sidebar); padding: 30px; border-radius: 20px;
-        border: 1px solid var(--border-color); transition: 0.3s;
+        background: var(--bg-sidebar); padding: 20px; border-radius: 20px;
+        border: 1px solid var(--border-color);
     }
-    .stat-card-pro:hover { border-color: var(--primary); transform: translateY(-5px); }
-    
-    .stat-value { font-size: 2rem; font-weight: 800; margin-top: 10px; }
-    .stat-label { color: var(--text-muted); font-weight: 600; font-size: 0.9rem; }
+    .stat-value { font-size: 1.8rem; font-weight: 800; }
+    .stat-label { color: var(--text-muted); font-size: 0.85rem; }
 </style>
 
 <div class="premium-banner">
-    <div style="position: relative; z-index: 1;">
-        <span class="welcome-text">لوحة إدارة المتجر</span>
-        <h1 class="shop-title-large">{{ current_user.shop.name }}</h1>
-        <p style="color: var(--text-muted); font-size: 1.1rem;">أهلاً بك مجدداً، {{ current_user.username }}. مبيعاتك في تطور مستمر.</p>
-    </div>
+    <span style="color:var(--primary); font-weight:700;">لوحة إدارة المتجر</span>
+    <h1 class="shop-title-large">{{ current_user.shop.name }}</h1>
+    <p style="color: var(--text-muted);">أهلاً، {{ current_user.username }}.</p>
 </div>
 
 <div class="stat-grid">
-   <div class="stat-card-pro">
-    <div class="stat-label">مبيعات اليوم</div>
-    <div class="stat-value">{{ todays_sales }}</div>
-</div>
+    <div class="stat-card-pro">
+        <div class="stat-label">مبيعات اليوم</div>
+        <div class="stat-value">{{ todays_sales }}</div>
+    </div>
     <div class="stat-card-pro">
         <div class="stat-label">إجمالي الشهر</div>
         <div class="stat-value" style="color: #10b981;">{{ month_sales }}</div>
@@ -65,9 +78,9 @@
     </div>
 </div>
 
-<div class="card" style="background: var(--bg-sidebar); padding: 30px; border-radius: 24px; border: 1px solid var(--border-color);">
-    <h3 style="margin-bottom: 25px;"><i class="fas fa-chart-area" style="color: var(--primary);"></i>  نمو المبيعات</h3>
-    <div style="height: 350px;">
+<div class="chart-card">
+    <h3 style="margin-bottom: 20px;"><i class="fas fa-chart-line"></i> نمو المبيعات</h3>
+    <div style="height: calc(100% - 60px);">
         <canvas id="salesChart"></canvas>
     </div>
 </div>
@@ -76,34 +89,23 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById('salesChart').getContext('2d');
-        let chartLabels = {{ chart_labels | tojson }};
-        let chartData = {{ chart_data | tojson }};
-
-        if (!chartData || chartData.length === 0) {
-            chartData = [0, 0, 0, 0, 0, 0, 0];
-            chartLabels = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
-        }
-
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: chartLabels,
+                labels: {{ chart_labels | tojson }},
                 datasets: [{
-                    label: 'المبيعات اليومية',
-                    data: chartData,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                    borderWidth: 4, tension: 0.4, fill: true,
-                    pointRadius: 6, pointBackgroundColor: '#3b82f6', pointBorderColor: '#fff', pointBorderWidth: 3
+                    label: 'المبيعات',
+                    data: {{ chart_data | tojson }},
+                    borderColor: '#5d5af3',
+                    backgroundColor: 'rgba(93, 90, 243, 0.1)',
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
-                    x: { grid: { display: false }, ticks: { color: '#64748b' } }
-                }
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
             }
         });
     });
