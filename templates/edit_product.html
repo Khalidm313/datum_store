@@ -32,11 +32,7 @@
                 <label>المخزون</label>
                 <input type="number" name="stock" value="{{ product.stock }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
             </div>
-            <div style="flex: 1;">
-                <label>الضريبة (%)</label>
-                <input type="number" step="0.1" name="tax" value="{{ product.tax }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            </div>
-        </div>
+    
 
         <div>
             <label>التصنيف</label>
@@ -52,4 +48,5 @@
         <a href="{{ url_for('products') }}" class="btn" style="text-align: center; background: #eee; color: #333; text-decoration: none; padding: 12px;">إلغاء</a>
     </form>
 </div>
+
 {% endblock %}
