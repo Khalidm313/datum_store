@@ -11,7 +11,6 @@
         
         :root {
             --primary: #5d5af3;
-            --primary-soft: rgba(93, 90, 243, 0.1);
             --bg-body: #0f172a;
             --bg-sidebar: #1e293b;
             --border-color: #334155;
@@ -44,7 +43,7 @@
             z-index: 1000; align-items: center; justify-content: space-between; padding: 0 20px;
         }
 
-        /* --- SIDEBAR (Mobile Compatible) --- */
+        /* --- SIDEBAR --- */
         .sidebar {
             width: var(--sidebar-width);
             background-color: var(--bg-sidebar);
@@ -56,23 +55,23 @@
         .nav-link {
             display: flex; align-items: center; gap: 12px; padding: 12px 15px;
             color: var(--text-muted); text-decoration: none; border-radius: 12px;
-            margin-bottom: 5px; font-weight: 500;
+            margin-bottom: 5px; font-weight: 500; transition: 0.2s;
         }
         .nav-link.active { background-color: var(--primary); color: white; }
+        .nav-link:hover { background: rgba(93, 90, 243, 0.1); color: var(--primary); }
 
         .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
 
-        /* --- RESPONSIVE MEDIA QUERIES --- */
+        /* --- RESPONSIVE LOGIC --- */
         @media (max-width: 992px) {
             .mobile-header { display: flex; }
             .sidebar {
                 position: fixed; top: 0; bottom: 0; right: 0;
-                transform: translateX(100%); /* Hide sidebar off-screen */
+                transform: translateX(100%); /* Hidden on mobile by default */
             }
-            .sidebar.open { transform: translateX(0); } /* Slide in */
+            .sidebar.open { transform: translateX(0); } /* Shown when toggled */
             .main-content { padding: 80px 15px 20px 15px; width: 100%; }
             
-            /* Overlay when sidebar is open */
             .sidebar-overlay {
                 display: none; position: fixed; inset: 0;
                 background: rgba(0,0,0,0.5); z-index: 1000;
@@ -80,8 +79,7 @@
             .sidebar-overlay.active { display: block; }
         }
 
-        /* Utility for Tables on Mobile */
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .logo { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
     </style>
 </head>
 <body>
@@ -93,12 +91,13 @@
             <i class="fas fa-bars"></i>
         </button>
         <div style="font-weight: 800;">Datum Store</div>
-        <div style="width: 30px;"></div> </header>
+        <div style="width: 30px;"></div>
+    </header>
 
     {% if current_user.is_authenticated %}
     <nav class="sidebar" id="sidebar">
         <div class="logo">
-            <i class="fas fa-cube"></i> Datum Store
+            <i class="fas fa-cube" style="color: var(--primary);"></i> Datum Store
         </div>
 
         {% if current_user.is_admin %}
@@ -112,7 +111,7 @@
             <a href="{{ url_for('settings') }}" class="nav-link {{ 'active' if request.endpoint == 'settings' else '' }}"><i class="fas fa-cog"></i> الإعدادات</a>
         {% endif %}
 
-        <a href="{{ url_for('logout') }}" class="nav-link" style="margin-top: auto; color: #ef4444;">
+        <a href="{{ url_for('logout') }}" class="nav-link" style="margin-top: auto; color: #ef4444; background: rgba(239, 68, 68, 0.1);">
             <i class="fas fa-sign-out-alt"></i> خروج
         </a>
     </nav>
