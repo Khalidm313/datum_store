@@ -188,7 +188,12 @@ def invoices():
 @login_required
 def settings():
     shop = Shop.query.get(current_user.shop_id)
+
+    if not shop:
+        abort(404)
+
     return render_template("settings.html", shop=shop)
+
 
 
 @app.route('/support')
@@ -213,5 +218,6 @@ def manage_admins():
 @login_required
 def admin_profile():
     return "Admin Profile"
+
 
 
